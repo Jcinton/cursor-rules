@@ -444,10 +444,33 @@ git status
 **常见问题**：
 
 1. **提交信息出现乱码**：
+   
+   方法一：修改最后一次提交
    ```bash
-   # 修改最后一次提交的信息
+   # 使用文件方式提交（推荐）
+   echo "feat(用户): 添加用户登录功能" > commit_msg.txt
+   git commit --amend -F commit_msg.txt
+   
+   # 或使用编辑器修改
    git commit --amend
    # 在编辑器中重新输入正确的中文信息
+   ```
+   
+   方法二：修改历史提交（慎用）
+   ```bash
+   # 使用 rebase 修改多个历史提交
+   git rebase -i HEAD~3
+   # 将需要修改的提交从 pick 改为 reword
+   # 保存后会依次打开编辑器让你修改提交信息
+   
+   # 使用文件方式批量修改
+   # 1. 创建包含正确提交信息的文件
+   echo "feat(用户): 添加用户登录功能" > commit_msg.txt
+   
+   # 2. 修改指定提交
+   GIT_SEQUENCE_EDITOR=true git rebase -i HEAD~3
+   git commit --amend -F commit_msg.txt
+   git rebase --continue
    ```
 
 2. **Git Bash 中文乱码**：
@@ -463,6 +486,21 @@ git status
        "LC_ALL": "C.UTF-8"
      }
    }
+   ```
+
+4. **PowerShell 中文提交乱码**：
+   ```powershell
+   # 临时解决方案：使用文件方式提交
+   "feat(用户): 添加用户登录功能" | Out-File -Encoding UTF8 commit_msg.txt
+   git commit -F commit_msg.txt
+   
+   # 永久解决方案：配置 PowerShell 编码
+   # 编辑 PowerShell 配置文件
+   notepad $PROFILE
+   
+   # 添加以下内容：
+   [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+   $env:LESSCHARSET = 'utf-8'
    ```
 
 ### 项目级配置
