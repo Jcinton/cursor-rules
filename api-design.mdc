@@ -1,0 +1,430 @@
+---
+globs: .java
+alwaysApply: false
+---
+# RESTful API 设计规则
+
+## URL 设计规范
+
+### 基本原则
+1. 使用名词，不使用动词
+2. 使用复数形式
+3. 使用小写字母和连字符
+4. 不要使用文件扩展名
+
+### URL 结构
+```
+https://api.example.com/v1/resources
+                      版本  资源名（复数）
+```
+
+### 正确示例
+```
+✅ GET    /api/v1/users          # 获取用户列表
+✅ GET    /api/v1/users/123      # 获取 ID 为 123 的用户
+✅ POST   /api/v1/users          # 创建新用户
+✅ PUT    /api/v1/users/123      # 更新 ID 为 123 的用户
+✅ DELETE /api/v1/users/123      # 删除 ID 为 123 的用户
+```
+
+### 错误示例
+```
+❌ GET  /api/v1/getUsers         # 不要使用动词
+❌ GET  /api/v1/user             # 使用复数
+❌ GET  /api/v1/User             # 使用小写
+❌ GET  /api/v1/users.json       # 不要文件扩展名
+```
+
+## HTTP 方法使用
+
+### GET - 获取资源
+```java
+// 获取列表
+@GetMapping("/users")
+public Result<List<UserVO>> list() { }
+
+// 获取单个
+@GetMapping("/users/{id}")
+public Result<UserVO> getById(@PathVariable Long id) { }
+
+// 带参数查询
+@GetMapping("/users")
+public Result<List<UserVO>> search(@RequestParam String keyword) { }
+```
+
+### POST - 创建资源
+```java
+@PostMapping("/users")
+public Result<UserVO> create(@Valid @RequestBody UserCreateDTO dto) {
+    return Result.success(userService.create(dto));
+}
+```
+
+### PUT - 完整更新资源
+```java
+@PutMapping("/users/{id}")
+public Result<Void> update(
+    @PathVariable Long id,
+    @Valid @RequestBody UserUpdateDTO dto) {
+    userService.update(id, dto);
+    return Result.success();
+}
+```
+
+### PATCH - 部分更新资源
+```java
+@PatchMapping("/users/{id}/status")
+public Result<Void> updateStatus(
+    @PathVariable Long id,
+    @RequestBody Map<String, Object> updates) {
+    userService.updateStatus(id, updates);
+    return Result.success();
+}
+```
+
+### DELETE - 删除资源
+```java
+@DeleteMapping("/users/{id}")
+public Result<Void> delete(@PathVariable Long id) {
+    userService.delete(id);
+    return Result.success();
+}
+```
+
+## 状态码使用
+
+### 2xx 成功
+- `200 OK`: 请求成功
+- `201 Created`: 创建成功
+- `204 No Content`: 删除成功，无返回内容
+
+### 4xx 客户端错误
+- `400 Bad Request`: 请求参数错误
+- `401 Unauthorized`: 未登录
+- `403 Forbidden`: 无权限
+- `404 Not Found`: 资源不存在
+- `409 Conflict`: 资源冲突（如用户名已存在）
+
+### 5xx 服务器错误
+- `500 Internal Server Error`: 服务器内部错误
+- `503 Service Unavailable`: 服务不可用
+
+## 统一响应格式
+
+### 成功响应
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "id": 1,
+    "username": "admin"
+  },
+  "timestamp": 1642492800000
+}
+```
+
+### 错误响应
+```json
+{
+  "code": 400,
+  "message": "用户名已存在",
+  "data": null,
+  "timestamp": 1642492800000
+}
+```
+
+### Result 类定义
+```java
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Result<T> {
+    private Integer code;
+    private String message;
+    private T data;
+    private Long timestamp;
+    
+    public static <T> Result<T> success(T data) {
+        Result<T> result = new Result<>();
+        result.setCode(200);
+        result.setMessage("操作成功");
+        result.setData(data);
+        result.setTimestamp(System.currentTimeMillis());
+        return result;
+    }
+    
+    public static <T> Result<T> error(Integer code, String message) {
+        Result<T> result = new Result<>();
+        result.setCode(code);
+        result.setMessage(message);
+        result.setTimestamp(System.currentTimeMillis());
+        return result;
+    }
+}
+```
+
+## 分页查询
+
+### 请求参数
+```java
+@GetMapping("/users")
+public Result<PageResult<UserVO>> list(
+    @RequestParam(defaultValue = "1") Integer pageNum,
+    @RequestParam(defaultValue = "10") Integer pageSize,
+    @RequestParam(required = false) String keyword) {
+    return Result.success(userService.list(pageNum, pageSize, keyword));
+}
+```
+
+### 响应格式
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "records": [...],
+    "total": 100,
+    "pageNum": 1,
+    "pageSize": 10,
+    "totalPages": 10
+  },
+  "timestamp": 1642492800000
+}
+```
+
+### PageResult 类定义
+```java
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PageResult<T> {
+    private List<T> records;
+    private Long total;
+    private Integer pageNum;
+    private Integer pageSize;
+    private Integer totalPages;
+    
+    public PageResult(List<T> records, Long total, Integer pageNum, Integer pageSize) {
+        this.records = records;
+        this.total = total;
+        this.pageNum = pageNum;
+        this.pageSize = pageSize;
+        this.totalPages = (int) Math.ceil((double) total / pageSize);
+    }
+}
+```
+
+## 参数校验
+
+### 使用 Bean Validation
+```java
+@Data
+public class UserCreateDTO {
+    @NotBlank(message = "用户名不能为空")
+    @Length(min = 3, max = 20, message = "用户名长度必须在 3-20 之间")
+    private String username;
+    
+    @NotBlank(message = "密码不能为空")
+    @Length(min = 6, message = "密码长度不能小于 6")
+    private String password;
+    
+    @Email(message = "邮箱格式不正确")
+    private String email;
+    
+    @Min(value = 0, message = "年龄不能小于 0")
+    @Max(value = 150, message = "年龄不能大于 150")
+    private Integer age;
+}
+```
+
+### Controller 使用 @Valid
+```java
+@PostMapping("/users")
+public Result<UserVO> create(@Valid @RequestBody UserCreateDTO dto) {
+    return Result.success(userService.create(dto));
+}
+```
+
+## 过滤、排序、搜索
+
+### 过滤
+```
+GET /api/v1/users?status=1&role=admin
+```
+
+### 排序
+```
+GET /api/v1/users?sort=createTime&order=desc
+```
+
+### 搜索
+```
+GET /api/v1/users?keyword=张三
+```
+
+### 组合使用
+```
+GET /api/v1/users?status=1&keyword=张&sort=createTime&order=desc&pageNum=1&pageSize=10
+```
+
+## 版本控制
+
+### URL 版本控制（推荐）
+```java
+@RestController
+@RequestMapping("/api/v1/users")
+public class UserControllerV1 { }
+
+@RestController
+@RequestMapping("/api/v2/users")
+public class UserControllerV2 { }
+```
+
+### Header 版本控制
+```java
+@GetMapping(value = "/users", headers = "API-Version=1")
+public Result<List<UserVO>> listV1() { }
+
+@GetMapping(value = "/users", headers = "API-Version=2")
+public Result<List<UserVO>> listV2() { }
+```
+
+## JWT 认证
+
+### 请求头
+```
+Authorization: Bearer <token>
+```
+
+### 拦截器验证
+```java
+@Component
+public class JwtInterceptor implements HandlerInterceptor {
+    
+    @Override
+    public boolean preHandle(HttpServletRequest request, 
+                           HttpServletResponse response, 
+                           Object handler) {
+        String token = request.getHeader("Authorization");
+        if (token == null || !token.startsWith("Bearer ")) {
+            throw new UnauthorizedException("未登录");
+        }
+        
+        String jwt = token.substring(7);
+        if (!JwtUtils.verify(jwt)) {
+            throw new UnauthorizedException("Token 无效");
+        }
+        
+        return true;
+    }
+}
+```
+
+## 错误处理
+
+### 自定义业务异常
+```java
+@Getter
+public class BusinessException extends RuntimeException {
+    private final Integer code;
+    
+    public BusinessException(String message) {
+        super(message);
+        this.code = 500;
+    }
+    
+    public BusinessException(Integer code, String message) {
+        super(message);
+        this.code = code;
+    }
+}
+```
+
+### 全局异常处理
+```java
+@RestControllerAdvice
+@Slf4j
+public class GlobalExceptionHandler {
+    
+    @ExceptionHandler(BusinessException.class)
+    public Result<Void> handleBusinessException(BusinessException e) {
+        log.error("业务异常: {}", e.getMessage());
+        return Result.error(e.getCode(), e.getMessage());
+    }
+    
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Result<Void> handleValidationException(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(FieldError::getDefaultMessage)
+                .collect(Collectors.joining(", "));
+        log.error("参数校验异常: {}", message);
+        return Result.error(400, message);
+    }
+    
+    @ExceptionHandler(Exception.class)
+    public Result<Void> handleException(Exception e) {
+        log.error("系统异常: ", e);
+        return Result.error(500, "系统错误，请稍后重试");
+    }
+}
+```
+
+## API 文档
+
+### 使用 Knife4j
+```java
+@Configuration
+@EnableKnife4j
+public class Knife4jConfig {
+    
+    @Bean
+    public Docket createRestApi() {
+        return new Docket(DocumentationType.OAS_30)
+                .apiInfo(apiInfo())
+                .select()
+                .apis(RequestHandlerSelectors.basePackage("com.company.project.controller"))
+                .paths(PathSelectors.any())
+                .build();
+    }
+    
+    private ApiInfo apiInfo() {
+        return new ApiInfoBuilder()
+                .title("API 文档")
+                .description("项目 RESTful API")
+                .version("1.0.0")
+                .build();
+    }
+}
+```
+
+### Controller 添加文档注解
+```java
+@RestController
+@RequestMapping("/api/v1/users")
+@Api(tags = "用户管理")
+public class UserController {
+    
+    @GetMapping("/{id}")
+    @ApiOperation("根据 ID 获取用户")
+    @ApiImplicitParam(name = "id", value = "用户 ID", required = true)
+    public Result<UserVO> getById(@PathVariable Long id) {
+        return Result.success(userService.getById(id));
+    }
+}
+```
+
+## 最佳实践
+
+1. **使用 RESTful 风格的 URL**
+2. **使用正确的 HTTP 方法**
+3. **返回合适的 HTTP 状态码**
+4. **统一响应格式**
+5. **参数校验使用 Bean Validation**
+6. **全局异常处理**
+7. **JWT Token 认证**
+8. **API 版本控制**
+9. **使用 Knife4j 生成文档**
+10. **日志记录关键操作**

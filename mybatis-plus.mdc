@@ -1,0 +1,340 @@
+---
+alwaysApply: true
+---
+
+# MyBatis-Plus 使用规则
+
+## 实体类规范
+
+### 基本注解
+```java
+@Data
+@TableName("user")
+public class User {
+    @TableId(type = IdType.AUTO)
+    private Long id;
+    
+    private String username;
+    
+    private String email;
+    
+    @TableField(fill = FieldFill.INSERT)
+    private LocalDateTime createTime;
+    
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updateTime;
+    
+    @TableLogic
+    private Integer deleted;
+}
+```
+
+### 常用注解说明
+- `@TableName`: 指定表名
+- `@TableId`: 主键，`IdType.AUTO` 自增，`IdType.ASSIGN_ID` 雪花算法
+- `@TableField`: 字段映射
+- `@TableLogic`: 逻辑删除字段
+
+## Mapper 接口规范
+
+### 继承 BaseMapper
+```java
+@Mapper
+public interface UserMapper extends BaseMapper<User> {
+    // 继承 BaseMapper 后自动拥有 CRUD 方法
+    
+    // 自定义复杂查询
+    IPage<User> selectUserPage(IPage<User> page, @Param("keyword") String keyword);
+    
+    // 自定义统计查询
+    Long countByStatus(@Param("status") Integer status);
+}
+```
+
+## Service 层规范
+
+### 继承 IService
+```java
+public interface UserService extends IService<User> {
+    // 继承 IService 后自动拥有批量操作方法
+    
+    // 自定义业务方法
+    PageResult<UserVO> listUsers(Integer pageNum, Integer pageSize, String keyword);
+}
+```
+
+### 实现类继承 ServiceImpl
+```java
+@Service
+@RequiredArgsConstructor
+public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
+    
+    @Override
+    public PageResult<UserVO> listUsers(Integer pageNum, Integer pageSize, String keyword) {
+        Page<User> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.like(StringUtils.isNotBlank(keyword), User::getUsername, keyword)
+               .orderByDesc(User::getCreateTime);
+        
+        Page<User> result = this.page(page, wrapper);
+        return new PageResult<>(result.getRecords(), result.getTotal(), pageNum, pageSize);
+    }
+}
+```
+
+## 条件构造器使用
+
+### LambdaQueryWrapper（推荐）
+```java
+LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+
+// 等于
+wrapper.eq(User::getStatus, 1);
+
+// 模糊查询
+wrapper.like(User::getUsername, "张");
+
+// 范围查询
+wrapper.between(User::getAge, 18, 60);
+
+// 多条件 OR
+wrapper.eq(User::getStatus, 1)
+       .or()
+       .eq(User::getRole, "admin");
+
+// 排序
+wrapper.orderByDesc(User::getCreateTime);
+
+// 查询指定字段
+wrapper.select(User::getId, User::getUsername);
+
+List<User> users = userMapper.selectList(wrapper);
+```
+
+### 常用条件方法
+- `eq`: 等于 =
+- `ne`: 不等于 !=
+- `gt`: 大于 >
+- `ge`: 大于等于 >=
+- `lt`: 小于 <
+- `le`: 小于等于 <=
+- `like`: 模糊查询 LIKE
+- `in`: IN 查询
+- `between`: BETWEEN 查询
+- `isNull`: IS NULL
+- `isNotNull`: IS NOT NULL
+- `orderByAsc`: 升序排序
+- `orderByDesc`: 降序排序
+
+## 分页查询
+
+```java
+// Controller
+@GetMapping
+public Result<PageResult<UserVO>> list(
+    @RequestParam(defaultValue = "1") Integer pageNum,
+    @RequestParam(defaultValue = "10") Integer pageSize) {
+    return Result.success(userService.listUsers(pageNum, pageSize));
+}
+
+// Service
+public PageResult<UserVO> listUsers(Integer pageNum, Integer pageSize) {
+    Page<User> page = new Page<>(pageNum, pageSize);
+    Page<User> result = this.page(page);
+    
+    List<UserVO> voList = result.getRecords().stream()
+            .map(this::convertToVO)
+            .collect(Collectors.toList());
+    
+    return new PageResult<>(voList, result.getTotal(), pageNum, pageSize);
+}
+```
+
+## 批量操作
+
+### 批量插入
+```java
+List<User> users = new ArrayList<>();
+// ... 添加用户
+userService.saveBatch(users);
+```
+
+### 批量更新
+```java
+List<User> users = userMapper.selectList(null);
+users.forEach(user -> user.setStatus(1));
+userService.updateBatchById(users);
+```
+
+### 批量删除
+```java
+List<Long> ids = Arrays.asList(1L, 2L, 3L);
+userService.removeByIds(ids);
+```
+
+## 逻辑删除配置
+
+### application.yml
+```yaml
+mybatis-plus:
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+```
+
+### 实体类
+```java
+@TableLogic
+private Integer deleted;
+```
+
+使用逻辑删除后，删除操作会自动变为更新操作。
+
+## 自动填充
+
+### 配置自动填充处理器
+```java
+@Component
+public class MyMetaObjectHandler implements MetaObjectHandler {
+    
+    @Override
+    public void insertFill(MetaObject metaObject) {
+        this.strictInsertFill(metaObject, "createTime", LocalDateTime.class, LocalDateTime.now());
+        this.strictInsertFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
+    }
+    
+    @Override
+    public void updateFill(MetaObject metaObject) {
+        this.strictUpdateFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
+    }
+}
+```
+
+### 实体类标注
+```java
+@TableField(fill = FieldFill.INSERT)
+private LocalDateTime createTime;
+
+@TableField(fill = FieldFill.INSERT_UPDATE)
+private LocalDateTime updateTime;
+```
+
+## 代码生成器
+
+```java
+public class CodeGenerator {
+    public static void main(String[] args) {
+        FastAutoGenerator.create("jdbc:mysql://localhost:3306/db", "root", "password")
+                .globalConfig(builder -> {
+                    builder.author("author")
+                           .outputDir(System.getProperty("user.dir") + "/src/main/java");
+                })
+                .packageConfig(builder -> {
+                    builder.parent("com.company.project")
+                           .entity("entity")
+                           .mapper("mapper")
+                           .service("service")
+                           .serviceImpl("service.impl")
+                           .controller("controller");
+                })
+                .strategyConfig(builder -> {
+                    builder.addInclude("user", "order")
+                           .entityBuilder()
+                           .enableLombok()
+                           .enableTableFieldAnnotation()
+                           .logicDeleteColumnName("deleted")
+                           .addTableFills(new Column("create_time", FieldFill.INSERT))
+                           .addTableFills(new Column("update_time", FieldFill.INSERT_UPDATE));
+                })
+                .execute();
+    }
+}
+```
+
+## 常用查询示例
+
+### 单条查询
+```java
+// 根据 ID 查询
+User user = userMapper.selectById(1L);
+
+// 根据条件查询一条
+LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+wrapper.eq(User::getUsername, "admin");
+User user = userMapper.selectOne(wrapper);
+```
+
+### 列表查询
+```java
+// 查询所有
+List<User> users = userMapper.selectList(null);
+
+// 条件查询
+LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+wrapper.eq(User::getStatus, 1);
+List<User> users = userMapper.selectList(wrapper);
+```
+
+### 统计查询
+```java
+// 统计总数
+Long count = userMapper.selectCount(null);
+
+// 条件统计
+LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+wrapper.eq(User::getStatus, 1);
+Long count = userMapper.selectCount(wrapper);
+```
+
+### 更新操作
+```java
+// 根据 ID 更新
+User user = new User();
+user.setId(1L);
+user.setUsername("newName");
+userMapper.updateById(user);
+
+// 条件更新
+LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
+wrapper.eq(User::getId, 1L)
+       .set(User::getStatus, 1);
+userMapper.update(null, wrapper);
+```
+
+## 性能优化建议
+
+1. **只查询需要的字段**
+```java
+wrapper.select(User::getId, User::getUsername);
+```
+
+2. **使用分页避免一次查询大量数据**
+```java
+Page<User> page = new Page<>(1, 10);
+```
+
+3. **批量操作使用 saveBatch/updateBatchById**
+```java
+userService.saveBatch(users, 1000); // 每批 1000 条
+```
+
+4. **避免 N+1 查询问题，使用关联查询**
+```xml
+<resultMap id="UserWithOrdersMap" type="User">
+    <collection property="orders" ofType="Order" select="selectOrders"/>
+</resultMap>
+```
+
+5. **合理使用索引，在常查询字段上建立索引**
+
+## 最佳实践
+
+1. **使用 LambdaQueryWrapper 避免硬编码字段名**
+2. **复杂查询写 XML，简单查询用 Wrapper**
+3. **使用逻辑删除而不是物理删除**
+4. **统一使用 Service 层方法，避免直接调用 Mapper**
+5. **分页查询使用 MyBatis-Plus 的 Page 对象**
+6. **批量操作优先使用 saveBatch/updateBatchById**
+7. **合理配置自动填充，减少重复代码**
