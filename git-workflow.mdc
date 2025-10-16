@@ -385,6 +385,86 @@ git config --list
 git config user.name
 ```
 
+### 中文编码配置（重要！）
+
+**解决中文乱码问题**：
+
+```bash
+# 1. 设置提交信息编码为 UTF-8
+git config --global i18n.commitencoding utf-8
+
+# 2. 设置日志输出编码为 UTF-8
+git config --global i18n.logoutputencoding utf-8
+
+# 3. 禁用路径引用，正确显示中文文件名
+git config --global core.quotepath false
+
+# 4. 设置 Git GUI 编码
+git config --global gui.encoding utf-8
+```
+
+**Windows 系统额外配置**：
+
+如果使用 PowerShell，在 PowerShell 配置文件中添加：
+
+```powershell
+# PowerShell 配置文件路径: $PROFILE
+# 编辑配置: notepad $PROFILE
+
+# 设置输出编码为 UTF-8
+[System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$env:LESSCHARSET = 'utf-8'
+
+# 设置 Git 输出编码
+$env:LC_ALL = 'C.UTF-8'
+```
+
+如果使用 CMD 或 Git Bash：
+
+```bash
+# 在 ~/.bashrc 或 ~/.bash_profile 中添加
+export LANG=zh_CN.UTF-8
+export LC_ALL=zh_CN.UTF-8
+export LESSCHARSET=utf-8
+```
+
+**验证配置**：
+
+```bash
+# 查看当前编码配置
+git config --get i18n.commitencoding
+git config --get i18n.logoutputencoding
+git config --get core.quotepath
+
+# 测试中文显示
+git log --oneline -5
+git status
+```
+
+**常见问题**：
+
+1. **提交信息出现乱码**：
+   ```bash
+   # 修改最后一次提交的信息
+   git commit --amend
+   # 在编辑器中重新输入正确的中文信息
+   ```
+
+2. **Git Bash 中文乱码**：
+   - 右键点击 Git Bash 窗口标题栏
+   - 选择 Options → Text → Locale 设为 `zh_CN`
+   - Character set 设为 `UTF-8`
+
+3. **VS Code 终端乱码**：
+   在 VS Code 设置中添加：
+   ```json
+   {
+     "terminal.integrated.env.windows": {
+       "LC_ALL": "C.UTF-8"
+     }
+   }
+   ```
+
 ### 项目级配置
 
 ```bash
