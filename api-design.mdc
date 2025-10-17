@@ -1,6 +1,5 @@
 ---
-globs: .java
-alwaysApply: false
+alwaysApply: true
 ---
 # RESTful API 设计规则
 
