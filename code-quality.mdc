@@ -12,483 +12,144 @@ alwaysApply: true
 - 逗号后加空格
 - 方法参数之间加空格
 
-```java
-// 正确
-public User findUser(Long id, String name) {
-    int result = a + b;
-    List<String> list = Arrays.asList("a", "b", "c");
-}
-
-// 错误
-public User findUser(Long id,String name){
-    int result=a+b;
-    List<String> list=Arrays.asList("a","b","c");
-}
-```
-
 ### 大括号
 - 左大括号不换行
 - 右大括号独占一行
 - if/else/for/while 必须使用大括号
-
-```java
-// 正确
-if (condition) {
-    doSomething();
-} else {
-    doOther();
-}
-
-// 错误
-if (condition)
-{
-    doSomething();
-}
-
-// 错误：即使只有一行也要加大括号
-if (condition)
-    doSomething();
-```
 
 ### 空行使用
 - 类成员变量之间不空行
 - 方法之间空一行
 - 逻辑块之间空一行
 
-```java
-public class User {
-    private Long id;
-    private String name;  // 变量之间不空行
-    
-    // 方法之间空一行
-    public void method1() {
-        // 逻辑块 1
-        doSomething();
-        
-        // 逻辑块 2（空一行）
-        doOther();
-    }
-    
-    // 方法之间空一行
-    public void method2() {
-    }
-}
-```
-
 ## 注释规范
 
 ### 类注释
-```java
-/**
- * 用户服务接口
- * 提供用户相关的业务操作
- *
- * @author zhangsan
- * @date 2024-01-15
- */
-public interface UserService {
-}
-```
+- 包含类的用途说明
+- 标注作者和日期
 
 ### 方法注释
-```java
-/**
- * 根据用户 ID 查询用户信息
- *
- * @param id 用户 ID
- * @return 用户信息，不存在返回 null
- * @throws IllegalArgumentException 当 ID 为 null 或小于 0 时抛出
- */
-public User getUserById(Long id) {
-}
-```
-
-### 单行注释
-```java
-// 验证用户权限
-if (!hasPermission(user)) {
-    return;
-}
-```
+- 说明方法功能
+- 标注参数、返回值、异常
 
 ### 避免的注释
-```java
-// 错误：废话注释
-int count = 0; // 定义计数器
-
-// 错误：注释掉的代码（应该删除）
-// User user = new User();
-// user.setName("test");
-```
+- 废话注释
+- 注释掉的代码（应删除）
 
 ## 异常处理
 
 ### 捕获具体异常
-```java
-// 正确：捕获具体异常
-try {
-    doSomething();
-} catch (IOException e) {
-    log.error("IO 异常", e);
-} catch (SQLException e) {
-    log.error("数据库异常", e);
-}
-
-// 错误：捕获 Exception
-try {
-    doSomething();
-} catch (Exception e) {
-    // 过于宽泛
-}
-```
+- 避免捕获 Exception
+- 针对不同异常类型分别处理
 
 ### 不要忽略异常
-```java
-// 错误：吞掉异常
-try {
-    doSomething();
-} catch (Exception e) {
-    // 什么都不做
-}
-
-// 正确：至少记录日志
-try {
-    doSomething();
-} catch (Exception e) {
-    log.error("操作失败", e);
-}
-```
+- 空 catch 块是严重问题
+- 至少记录日志
 
 ### 使用自定义异常
-```java
-// 定义业务异常
-public class BusinessException extends RuntimeException {
-    private final Integer code;
-    
-    public BusinessException(String message) {
-        super(message);
-        this.code = 500;
-    }
-    
-    public BusinessException(Integer code, String message) {
-        super(message);
-        this.code = code;
-    }
-}
-
-// 使用业务异常
-if (user == null) {
-    throw new BusinessException(404, "用户不存在");
-}
-```
+- 定义业务异常类
+- 包含错误码和错误消息
 
 ## 空值处理
 
 ### 使用 Optional
-```java
-// 推荐：使用 Optional
-public Optional<User> findUser(Long id) {
-    User user = userMapper.selectById(id);
-    return Optional.ofNullable(user);
-}
-
-// 调用方
-Optional<User> userOpt = findUser(id);
-userOpt.ifPresent(user -> {
-    // 处理用户
-});
-
-User user = findUser(id).orElse(new User());
-User user = findUser(id).orElseThrow(() -> new BusinessException("用户不存在"));
-```
+- 返回可能为空的值使用 Optional
+- 使用 ifPresent、orElse、orElseThrow 等方法
 
 ### 判空检查
-```java
-// 字符串判空
-if (StringUtils.isNotBlank(str)) {
-    doSomething();
-}
-
-// 集合判空
-if (CollectionUtils.isNotEmpty(list)) {
-    list.forEach(item -> {});
-}
-
-// 对象判空
-if (Objects.nonNull(user)) {
-    doSomething();
-}
-```
+- 字符串使用 StringUtils.isNotBlank
+- 集合使用 CollectionUtils.isNotEmpty
+- 对象使用 Objects.nonNull
 
 ### 避免返回 null
-```java
-// 错误：返回 null
-public List<User> getUsers() {
-    return null;
-}
-
-// 正确：返回空集合
-public List<User> getUsers() {
-    return Collections.emptyList();
-}
-```
+- 集合返回空集合而非 null
+- 使用 Optional 包装可能为空的对象
 
 ## 集合操作
 
 ### 使用 Stream API
-```java
-// 过滤
-List<User> activeUsers = users.stream()
-        .filter(user -> user.getStatus() == 1)
-        .collect(Collectors.toList());
-
-// 映射
-List<String> names = users.stream()
-        .map(User::getName)
-        .collect(Collectors.toList());
-
-// 统计
-long count = users.stream()
-        .filter(user -> user.getAge() > 18)
-        .count();
-
-// 分组
-Map<Integer, List<User>> grouped = users.stream()
-        .collect(Collectors.groupingBy(User::getStatus));
-```
+- 过滤、映射、统计
+- 分组、排序
+- 使用方法引用简化代码
 
 ### 避免在循环中操作数据库
-```java
-// 错误：在循环中查询数据库
-for (Long id : ids) {
-    User user = userMapper.selectById(id);
-    // 处理用户
-}
-
-// 正确：批量查询
-List<User> users = userMapper.selectBatchIds(ids);
-```
+- 使用批量查询代替循环查询
+- 使用批量更新代替循环更新
 
 ## 资源关闭
 
 ### 使用 try-with-resources
-```java
-// 推荐：自动关闭资源
-try (BufferedReader reader = new BufferedReader(new FileReader("file.txt"))) {
-    String line = reader.readLine();
-} catch (IOException e) {
-    log.error("读取文件失败", e);
-}
-
-// 避免：手动关闭
-BufferedReader reader = null;
-try {
-    reader = new BufferedReader(new FileReader("file.txt"));
-} finally {
-    if (reader != null) {
-        reader.close();
-    }
-}
-```
+- 自动关闭实现 AutoCloseable 的资源
+- 避免手动 finally 块关闭资源
 
 ## 常量使用
 
 ### 使用常量类
-```java
-public class Constants {
-    // 状态常量
-    public static final Integer STATUS_ACTIVE = 1;
-    public static final Integer STATUS_INACTIVE = 0;
-    
-    // 角色常量
-    public static final String ROLE_ADMIN = "admin";
-    public static final String ROLE_USER = "user";
-}
-
-// 使用常量
-if (user.getStatus().equals(Constants.STATUS_ACTIVE)) {
-    // 处理激活用户
-}
-```
+- 定义公共常量
+- 按类型分类组织
 
 ### 避免魔法值
-```java
-// 错误：使用魔法值
-if (user.getStatus() == 1) {
-    // 1 是什么意思？
-}
-
-// 正确：使用常量
-if (user.getStatus().equals(Constants.STATUS_ACTIVE)) {
-    // 清晰表达意图
-}
-```
+- 所有字面量都应定义为常量
+- 常量名清晰表达含义
 
 ## 方法设计
 
 ### 单一职责
-```java
-// 错误：方法做太多事情
-public void processUser(User user) {
-    // 验证用户
-    validateUser(user);
-    // 保存用户
-    saveUser(user);
-    // 发送邮件
-    sendEmail(user);
-    // 记录日志
-    logUser(user);
-}
-
-// 正确：拆分方法
-public void processUser(User user) {
-    validateUser(user);
-    saveUser(user);
-    notifyUser(user);
-}
-
-private void notifyUser(User user) {
-    sendEmail(user);
-    logUser(user);
-}
-```
+- 一个方法只做一件事
+- 复杂逻辑拆分为多个方法
 
 ### 参数不宜过多
-```java
-// 错误：参数太多
-public void createUser(String username, String password, String email, 
-                      String phone, Integer age, String address) {
-}
-
-// 正确：使用对象封装
-public void createUser(UserCreateDTO dto) {
-}
-```
+- 超过3个参数考虑封装为对象
+- 使用 DTO 传递参数
 
 ### 方法长度适中
-- 一个方法建议不超过 50 行
-- 如果方法太长，考虑拆分
+- 建议不超过 50 行
+- 过长方法考虑拆分
 
 ## 日志规范
 
 ### 日志级别
-```java
-@Slf4j
-public class UserService {
-    
-    public void example() {
-        // DEBUG: 调试信息
-        log.debug("查询用户: userId={}", userId);
-        
-        // INFO: 关键业务流程
-        log.info("用户登录成功: username={}", username);
-        
-        // WARN: 警告信息
-        log.warn("用户余额不足: userId={}, balance={}", userId, balance);
-        
-        // ERROR: 错误信息
-        log.error("用户创建失败: userId={}", userId, exception);
-    }
-}
-```
+- **DEBUG**: 调试信息
+- **INFO**: 关键业务流程
+- **WARN**: 警告信息
+- **ERROR**: 错误信息
 
 ### 日志内容
-```java
-// 正确：结构化日志
-log.info("订单创建成功: orderId={}, userId={}, amount={}", orderId, userId, amount);
-
-// 错误：信息不完整
-log.info("订单创建成功");
-
-// 错误：使用字符串拼接
-log.info("订单创建: orderId=" + orderId);
-```
+- 使用占位符而非字符串拼接
+- 包含关键上下文信息
+- 结构化日志便于查询
 
 ## 性能优化
 
 ### 使用局部变量
-```java
-// 推荐：提取到局部变量
-String username = user.getUsername();
-log.info("用户: {}", username);
-doSomething(username);
-
-// 避免：多次调用
-log.info("用户: {}", user.getUsername());
-doSomething(user.getUsername());
-```
+- 避免重复调用相同方法
+- 提取到局部变量
 
 ### 使用 StringBuilder
-```java
-// 推荐：使用 StringBuilder
-StringBuilder sb = new StringBuilder();
-for (String item : list) {
-    sb.append(item);
-}
-String result = sb.toString();
-
-// 避免：字符串拼接
-String result = "";
-for (String item : list) {
-    result += item;  // 每次都创建新对象
-}
-```
+- 循环中拼接字符串使用 StringBuilder
+- 避免使用 + 拼接
 
 ### 懒加载
-```java
-// 懒加载单例
-public class Singleton {
-    private static class Holder {
-        private static final Singleton INSTANCE = new Singleton();
-    }
-    
-    public static Singleton getInstance() {
-        return Holder.INSTANCE;
-    }
-}
-```
+- 延迟初始化
+- 单例模式使用静态内部类
 
 ## 代码复用
 
 ### 提取公共方法
-```java
-// 错误：重复代码
-public void method1() {
-    validateUser(user);
-    // 业务逻辑 1
-}
-
-public void method2() {
-    validateUser(user);
-    // 业务逻辑 2
-}
-
-// 正确：提取公共方法
-private void validateUser(User user) {
-    if (user == null) {
-        throw new BusinessException("用户不能为空");
-    }
-}
-```
+- 消除重复代码
+- 提取为私有方法或工具类
 
 ### 使用工具类
-```java
-// 使用 Apache Commons
-StringUtils.isBlank(str);
-CollectionUtils.isEmpty(list);
-
-// 使用 Hutool
-StrUtil.isBlank(str);
-CollUtil.isEmpty(list);
-DateUtil.parse("2024-01-15");
-```
+- Apache Commons
+- Hutool
+- Google Guava
 
 ## 最佳实践清单
 
-- [ ] 代码格式统一（使用 IDE 格式化）
+- [ ] 代码格式统一
 - [ ] 类和方法都有注释
 - [ ] 没有空的 catch 块
-- [ ] 使用 Optional 处理可能为 null 的值
+- [ ] 使用 Optional 处理空值
 - [ ] 使用 Stream API 处理集合
 - [ ] 使用 try-with-resources 关闭资源
 - [ ] 使用常量代替魔法值
