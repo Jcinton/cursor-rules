@@ -47,12 +47,15 @@
 # 在项目根目录执行
 cd /path/to/your/project
 
-# 方式 1: 使用在线安装脚本（推荐）
+# 方式 1: 使用在线安装脚本（推荐，仅公开仓库可用）
 bash <(curl -fsSL https://raw.githubusercontent.com/Jcinton/cursor-rules/main/install.sh)
 
-# 方式 2: 手动安装
+# 方式 2: 手动安装（SSH 方式，支持私有仓库）⭐
 git submodule add git@github.com:Jcinton/cursor-rules.git .cursor/rules
 git submodule update --init --recursive
+
+# ⚠️ 如果方式 1 返回 404 错误，请使用方式 2
+# 详见: TROUBLESHOOTING.md
 ```
 
 #### 2. 更新规则到最新版本
@@ -291,9 +294,10 @@ alwaysApply: false
 
 ## 📖 相关文档
 
+- [快速开始指南](./QUICKSTART.md) - 5 分钟快速上手
+- [完整使用指南](./USAGE.md) - 详细使用说明
+- [故障排除指南](./TROUBLESHOOTING.md) - 常见问题解决方案 ⭐
 - [Cursor 官方文档](https://cursor.sh/docs)
-- [.mdc 文件格式说明](./docs/mdc-format.md)
-- [规则编写指南](./docs/writing-rules.md)
 
 ## 🤝 贡献
 

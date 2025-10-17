@@ -10,6 +10,20 @@
 bash <(curl -fsSL https://raw.githubusercontent.com/Jcinton/cursor-rules/main/install.sh)
 ```
 
+**⚠️ 如果遇到 404 错误**，说明仓库是私有的，请使用以下替代方案：
+
+```bash
+# 方案 1: 使用 SSH 方式（推荐）
+git submodule add git@github.com:Jcinton/cursor-rules.git .cursor/rules
+git submodule update --init --recursive
+
+# 方案 2: 使用本地路径（如果有本地副本）
+git submodule add /path/to/cursor-rules .cursor/rules
+git submodule update --init --recursive
+```
+
+详见 [故障排除指南](./TROUBLESHOOTING.md#1-安装脚本返回-404-错误)
+
 **完成！** 🎉 规则已经安装到 `.cursor/rules/` 目录。
 
 ### 第二步：开始使用（1 分钟）
@@ -101,6 +115,9 @@ git rm -f .cursor/rules
 ```
 
 ## ❓ 常见问题
+
+**Q: 安装脚本返回 404 错误怎么办？**  
+A: 说明仓库是私有的。使用 SSH 方式安装：`git submodule add git@github.com:Jcinton/cursor-rules.git .cursor/rules`。详见 [故障排除指南](./TROUBLESHOOTING.md)。
 
 **Q: 需要每个项目都安装吗？**  
 A: 是的，每个项目独立管理规则。但团队成员克隆项目后会自动拥有规则。
