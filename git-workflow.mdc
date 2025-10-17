@@ -123,48 +123,128 @@ revert:    # 回退
 6. **提交前先测试**
 7. **统一使用中文描述，保持团队一致性**
 
-### ⚠️ 避免中文乱码的提交方法（推荐）
+### ⚠️ 避免中文乱码的提交方法（推荐）⭐
 
-**Windows PowerShell 环境下，推荐使用文件方式提交以避免编码问题：**
+**问题原因：**
+- Windows PowerShell 默认使用 GBK 编码（代码页 936）
+- PowerShell 的 `Out-File -Encoding UTF8` 会在文件开头添加 BOM（字节顺序标记）
+- Git 读取带 BOM 的 UTF-8 文件时会出现编码错误，导致乱码
+
+**✅ 正确方法：使用 Python 生成无 BOM 的 UTF-8 文件**
+
+#### 方法 1：使用 Python 脚本（最可靠）⭐
 
 ```bash
-# 方法1：使用临时文件提交（推荐）
-echo "feat(用户): 添加用户登录功能" | Out-File -Encoding UTF8 .git_commit_msg.txt
-git add .
-git commit -F .git_commit_msg.txt
-rm .git_commit_msg.txt
-
-# 方法2：包含详细说明的提交
-@"
-feat(用户): 添加用户登录功能
+# 创建临时 Python 脚本
+cat > _commit.py << 'EOF'
+msg = """feat(用户): 添加用户登录功能
 
 - 实现用户名密码验证
 - 添加 JWT Token 生成
 - 添加登录日志记录
 
-Closes #123
-"@ | Out-File -Encoding UTF8 .git_commit_msg.txt
-git commit -F .git_commit_msg.txt
-rm .git_commit_msg.txt
+Closes #123"""
 
-# 方法3：使用 PowerShell 函数（一次性配置）
-function gitc {
-    param([string]$message)
-    $message | Out-File -Encoding UTF8 .git_commit_msg.txt
-    git commit -F .git_commit_msg.txt
-    rm .git_commit_msg.txt
-}
+with open('.git_commit_msg.txt', 'w', encoding='utf-8') as f:
+    f.write(msg)
+print("Commit message file created")
+EOF
 
-# 使用函数提交
+# 暂存文件
 git add .
-gitc "feat(用户): 添加用户登录功能"
+
+# 运行脚本生成提交信息
+python _commit.py
+
+# 提交
+git commit -F .git_commit_msg.txt
+
+# 清理临时文件
+rm _commit.py .git_commit_msg.txt
 ```
 
-**为什么要用文件方式？**
-- PowerShell 默认使用 GBK 编码（代码页 936）
-- 直接使用 `git commit -m` 会导致中文乱码
-- 使用 UTF-8 文件可以保证编码正确
-- 提交后自动删除临时文件，保持工作区清洁
+**优点：**
+- ✅ 完全避免编码问题
+- ✅ 生成无 BOM 的纯 UTF-8 文件
+- ✅ 支持多行提交信息
+- ✅ 可以复用和自动化
+
+#### 方法 2：使用交互式提交工具
+
+项目中提供了 `git-commit-zh.py` 交互式提交工具：
+
+```bash
+# 暂存文件
+git add .
+
+# 运行交互式提交工具
+python git-commit-zh.py
+
+# 按提示输入：
+# - 提交类型 (feat/fix/docs 等)
+# - 作用域 (可选)
+# - 主题描述
+# - 详细说明 (可选)
+# - Footer (可选)
+```
+
+**优点：**
+- ✅ 交互式引导，不易出错
+- ✅ 自动生成规范的提交信息
+- ✅ 内置编码处理，保证无乱码
+
+#### 方法 3：使用 WSL（如果可用）
+
+如果安装了 WSL，可以在 Linux 环境中提交：
+
+```bash
+# 在 PowerShell 中切换到 WSL
+wsl bash
+
+# 在 WSL 中提交（原生支持 UTF-8）
+cd /mnt/e/code/your-project
+git add .
+git commit -m "feat(用户): 添加用户登录功能
+
+- 实现用户名密码验证
+- 添加 JWT Token 生成
+- 添加登录日志记录"
+
+exit
+```
+
+#### ❌ 不推荐的方法
+
+**不要使用 PowerShell 的 Out-File：**
+```bash
+# ❌ 这会产生带 BOM 的 UTF-8 文件，导致乱码
+echo "feat(用户): 添加功能" | Out-File -Encoding UTF8 .git_commit_msg.txt
+git commit -F .git_commit_msg.txt
+```
+
+**不要在 PowerShell 中直接使用 -m 参数：**
+```bash
+# ❌ PowerShell 会用 GBK 编码传递参数，导致乱码
+git commit -m "feat(用户): 添加功能"
+```
+
+#### 验证提交信息
+
+提交后，使用以下命令验证中文是否正确：
+
+```bash
+# 查看最近的提交
+git log -1
+
+# 如果看到乱码，说明需要修复：
+git commit --amend -F .git_commit_msg.txt  # 使用正确方法重新生成文件
+```
+
+#### 快速参考
+
+详细的中文提交指南和故障排除，请查看：
+- [Git 中文提交指南](doc/GIT_COMMIT_GUIDE.md)
+- [故障排除指南](doc/TROUBLESHOOTING.md)
 
 ## Git 工作流程
 
@@ -176,9 +256,16 @@ git checkout develop
 git pull origin develop
 git checkout -b feature/user-login
 
-# 2. 开发功能，定期提交（使用文件方式避免乱码）
+# 2. 开发功能，定期提交（使用 Python 方法避免乱码）
 git add .
-echo "feat(用户): 实现用户登录接口" | Out-File -Encoding UTF8 .git_commit_msg.txt
+
+# 创建提交信息（使用 Python）
+python -c "
+msg = 'feat(用户): 实现用户登录接口'
+with open('.git_commit_msg.txt', 'w', encoding='utf-8') as f:
+    f.write(msg)
+"
+
 git commit -F .git_commit_msg.txt
 rm .git_commit_msg.txt
 
@@ -202,9 +289,15 @@ git checkout develop
 git pull origin develop
 git checkout -b bugfix/fix-login-error
 
-# 修复 bug 并提交（使用文件方式）
+# 修复 bug 并提交（使用 Python 方法）
 git add .
-echo "fix(用户): 修复登录验证错误" | Out-File -Encoding UTF8 .git_commit_msg.txt
+
+python -c "
+msg = 'fix(用户): 修复登录验证错误'
+with open('.git_commit_msg.txt', 'w', encoding='utf-8') as f:
+    f.write(msg)
+"
+
 git commit -F .git_commit_msg.txt
 rm .git_commit_msg.txt
 
@@ -220,9 +313,15 @@ git checkout main
 git pull origin main
 git checkout -b hotfix/critical-security
 
-# 修复并提交（使用文件方式）
+# 修复并提交（使用 Python 方法）
 git add .
-echo "fix(安全): 修复严重安全漏洞" | Out-File -Encoding UTF8 .git_commit_msg.txt
+
+python -c "
+msg = 'fix(安全): 修复严重安全漏洞'
+with open('.git_commit_msg.txt', 'w', encoding='utf-8') as f:
+    f.write(msg)
+"
+
 git commit -F .git_commit_msg.txt
 rm .git_commit_msg.txt
 
