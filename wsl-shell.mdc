@@ -1,0 +1,246 @@
+# WSL 和 Shell 规则
+
+## 终端操作规范
+
+### 强制使用 WSL
+- **所有终端命令必须在 WSL 环境中运行**
+- 使用 `wsl` 前缀执行命令，或假定在 WSL 环境中操作
+- 不要使用 Windows CMD 或 PowerShell 原生命令
+
+### 脚本编写规范
+- **只编写 Shell 脚本（.sh 文件）**
+- **严禁创建 .bat 或 .ps1 格式的脚本**
+- 所有自动化任务使用 Bash/Shell 语法实现
+- 脚本文件必须包含 shebang：`#!/bin/bash` 或 `#!/bin/sh`
+- 脚本文件需要执行权限：`chmod +x script.sh`
+
+## 命令示例规范
+
+### 文件操作
+```bash
+# 正确：使用 Linux 命令
+wsl ls -la
+wsl cat filename.txt
+wsl mkdir -p directory/path
+wsl cp source destination
+wsl mv old new
+wsl rm -rf directory
+
+# 错误：不要使用 Windows 命令
+# dir
+# type filename.txt
+# md directory
+```
+
+### 路径处理
+```bash
+# 正确：使用 Linux 路径格式
+wsl cd /mnt/e/code/project
+wsl pwd
+
+# Windows 路径转换为 WSL 路径
+# E:\code\project -> /mnt/e/code/project
+# C:\Users\name -> /mnt/c/Users/name
+```
+
+### 进程和系统管理
+```bash
+# 正确：使用 Linux 命令
+wsl ps aux
+wsl kill -9 PID
+wsl top
+wsl grep pattern file.txt
+wsl find . -name "*.txt"
+
+# 错误：不要使用 Windows 命令
+# tasklist
+# taskkill
+```
+
+### 包管理和开发工具
+```bash
+# 正确：使用 Linux 包管理器
+wsl sudo apt update
+wsl sudo apt install package-name
+wsl npm install
+wsl python3 script.py
+wsl java -jar app.jar
+
+# 使用 Linux 环境的工具链
+wsl git status
+wsl docker ps
+wsl mvn clean install
+```
+
+## 脚本模板
+
+### 基础 Shell 脚本模板
+```bash
+#!/bin/bash
+
+# 脚本说明
+# 使用方法：./script.sh [参数]
+
+set -e  # 遇到错误立即退出
+set -u  # 使用未定义变量时报错
+
+# 变量定义
+VARIABLE="value"
+
+# 函数定义
+function main() {
+    echo "执行主逻辑"
+    # 你的代码
+}
+
+# 执行主函数
+main "$@"
+```
+
+### 带参数处理的脚本模板
+```bash
+#!/bin/bash
+
+set -e
+
+# 显示使用帮助
+function show_usage() {
+    echo "使用方法: $0 [选项]"
+    echo "选项:"
+    echo "  -h, --help     显示帮助信息"
+    echo "  -v, --verbose  详细输出"
+    exit 1
+}
+
+# 解析命令行参数
+VERBOSE=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -h|--help)
+            show_usage
+            ;;
+        -v|--verbose)
+            VERBOSE=true
+            shift
+            ;;
+        *)
+            echo "未知参数: $1"
+            show_usage
+            ;;
+    esac
+done
+
+# 主逻辑
+echo "开始执行..."
+```
+
+## 环境配置建议
+
+### WSL 安装检查
+```bash
+# 检查 WSL 是否安装
+wsl --list --verbose
+
+# 设置默认 WSL 版本
+wsl --set-default-version 2
+
+# 安装 Linux 发行版（如 Ubuntu）
+wsl --install -d Ubuntu
+```
+
+### 开发环境配置
+```bash
+# 在 WSL 中安装常用工具
+wsl sudo apt update
+wsl sudo apt install -y build-essential git curl wget vim
+
+# 配置 Git
+wsl git config --global user.name "Your Name"
+wsl git config --global user.email "your.email@example.com"
+```
+
+## 回答格式要求
+
+### 提供命令时
+- 始终使用 `wsl` 前缀或明确说明在 WSL 环境中执行
+- 使用 Linux/Unix 命令语法
+- 路径使用正斜杠 `/` 而不是反斜杠 `\`
+- 使用 `$HOME` 而不是 `%USERPROFILE%`
+- 使用 `&&` 连接命令，而不是 PowerShell 的 `;`
+
+### 提供脚本时
+- 只提供 `.sh` 格式的脚本
+- 包含完整的 shebang 和必要的错误处理
+- 使用 Shell 变量语法：`$VARIABLE` 或 `${VARIABLE}`
+- 使用 Shell 条件判断：`if [ condition ]; then ... fi`
+- 使用 Shell 循环：`for item in list; do ... done`
+
+## 常见任务的 Shell 实现
+
+### 批量文件处理
+```bash
+#!/bin/bash
+# 批量重命名文件
+for file in *.txt; do
+    mv "$file" "${file%.txt}.bak"
+done
+```
+
+### 项目构建脚本
+```bash
+#!/bin/bash
+set -e
+
+echo "开始构建项目..."
+wsl mvn clean package -DskipTests
+echo "构建完成！"
+
+echo "运行测试..."
+wsl mvn test
+echo "测试完成！"
+```
+
+### 环境启动脚本
+```bash
+#!/bin/bash
+set -e
+
+echo "启动服务..."
+
+# 启动数据库
+wsl docker-compose up -d mysql redis
+
+# 等待服务就绪
+sleep 5
+
+# 启动应用
+wsl java -jar target/application.jar
+
+echo "服务已启动！"
+```
+
+## 注意事项
+
+1. **路径转换**：Windows 路径需要转换为 WSL 路径格式
+2. **权限问题**：WSL 中可能需要使用 `sudo` 获取权限
+3. **换行符**：确保脚本使用 LF 换行符，不是 CRLF
+4. **文件权限**：创建脚本后记得添加执行权限
+5. **环境变量**：使用 Linux 环境变量，如 `$PATH`、`$HOME`
+
+## 禁止事项
+
+❌ **绝对不要做：**
+- 创建或建议使用 `.bat` 批处理文件
+- 创建或建议使用 `.ps1` PowerShell 脚本
+- 使用 Windows CMD 命令（如 `dir`、`copy`、`del`）
+- 使用 PowerShell 特有语法（如 `Get-ChildItem`、`Remove-Item`）
+- 使用 Windows 路径分隔符 `\`
+- 使用 Windows 环境变量语法 `%VAR%`
+
+✅ **始终做：**
+- 使用 `wsl` 命令前缀或假定在 WSL 环境中
+- 使用 Linux/Unix 命令和语法
+- 创建 `.sh` Shell 脚本
+- 使用正斜杠 `/` 作为路径分隔符
+- 使用 Shell 环境变量语法 `$VAR` 或 `${VAR}`
