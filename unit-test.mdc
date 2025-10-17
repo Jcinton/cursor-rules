@@ -7,35 +7,10 @@ alwaysApply: true
 ## 测试框架
 
 ### 核心依赖
-```xml
-<!-- JUnit 5 -->
-<dependency>
-    <groupId>org.junit.jupiter</groupId>
-    <artifactId>junit-jupiter</artifactId>
-    <scope>test</scope>
-</dependency>
-
-<!-- Mockito -->
-<dependency>
-    <groupId>org.mockito</groupId>
-    <artifactId>mockito-core</artifactId>
-    <scope>test</scope>
-</dependency>
-
-<!-- Spring Boot Test -->
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-test</artifactId>
-    <scope>test</scope>
-</dependency>
-
-<!-- AssertJ (可选，更好的断言) -->
-<dependency>
-    <groupId>org.assertj</groupId>
-    <artifactId>assertj-core</artifactId>
-    <scope>test</scope>
-</dependency>
-```
+- JUnit 5
+- Mockito
+- Spring Boot Test
+- AssertJ（可选，更好的断言）
 
 ## 测试类命名规范
 
@@ -44,696 +19,108 @@ alwaysApply: true
 - 测试方法名：`test方法名_场景描述_预期结果`
 - 使用 `@DisplayName` 添加中文描述
 
-```java
-// 被测试类
-public class UserService {
-    public User getUserById(Long id) { }
-}
-
-// 测试类
-@DisplayName("用户服务测试")
-class UserServiceTest {
-    
-    @Test
-    @DisplayName("根据ID查询用户 - 用户存在 - 返回用户信息")
-    void testGetUserById_userExists_returnUser() {
-        // 测试代码
-    }
-    
-    @Test
-    @DisplayName("根据ID查询用户 - 用户不存在 - 抛出异常")
-    void testGetUserById_userNotExists_throwException() {
-        // 测试代码
-    }
-}
-```
-
 ## 测试类基本结构
 
 ### Controller 测试模板
-```java
-@WebMvcTest(UserController.class)
-@DisplayName("用户控制器测试")
-class UserControllerTest {
-    
-    @Autowired
-    private MockMvc mockMvc;
-    
-    @MockBean
-    private UserService userService;
-    
-    @Autowired
-    private ObjectMapper objectMapper;
-    
-    @Test
-    @DisplayName("创建用户 - 参数正确 - 返回成功")
-    void testCreateUser_validParams_returnSuccess() throws Exception {
-        // Given: 准备测试数据
-        UserCreateDTO dto = new UserCreateDTO();
-        dto.setUsername("test");
-        dto.setPassword("123456");
-        
-        UserVO expectedUser = new UserVO();
-        expectedUser.setId(1L);
-        expectedUser.setUsername("test");
-        
-        when(userService.createUser(any(UserCreateDTO.class)))
-            .thenReturn(expectedUser);
-        
-        // When: 执行测试
-        mockMvc.perform(post("/api/v1/users")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto)))
-                // Then: 验证结果
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data.id").value(1))
-                .andExpect(jsonPath("$.data.username").value("test"));
-        
-        // 验证 Service 调用
-        verify(userService, times(1)).createUser(any(UserCreateDTO.class));
-    }
-    
-    @Test
-    @DisplayName("创建用户 - 用户名为空 - 返回400错误")
-    void testCreateUser_emptyUsername_return400() throws Exception {
-        // Given
-        UserCreateDTO dto = new UserCreateDTO();
-        dto.setUsername("");
-        dto.setPassword("123456");
-        
-        // When & Then
-        mockMvc.perform(post("/api/v1/users")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isBadRequest());
-    }
-}
-```
+- 使用 `@WebMvcTest`
+- 使用 `@MockBean` Mock Service
+- 使用 `MockMvc` 模拟请求
 
 ### Service 测试模板
-```java
-@ExtendWith(MockitoExtension.class)
-@DisplayName("用户服务测试")
-class UserServiceTest {
-    
-    @Mock
-    private UserMapper userMapper;
-    
-    @Mock
-    private RedisTemplate<String, Object> redisTemplate;
-    
-    @InjectMocks
-    private UserServiceImpl userService;
-    
-    @Test
-    @DisplayName("创建用户 - 用户名不存在 - 创建成功")
-    void testCreateUser_usernameNotExists_createSuccess() {
-        // Given: 准备测试数据
-        UserCreateDTO dto = new UserCreateDTO();
-        dto.setUsername("test");
-        dto.setPassword("123456");
-        
-        User savedUser = new User();
-        savedUser.setId(1L);
-        savedUser.setUsername("test");
-        
-        when(userMapper.existsByUsername("test")).thenReturn(false);
-        when(userMapper.insert(any(User.class))).thenReturn(1);
-        
-        // When: 执行测试方法
-        UserVO result = userService.createUser(dto);
-        
-        // Then: 验证结果
-        assertThat(result).isNotNull();
-        assertThat(result.getUsername()).isEqualTo("test");
-        
-        // 验证方法调用
-        verify(userMapper, times(1)).existsByUsername("test");
-        verify(userMapper, times(1)).insert(any(User.class));
-    }
-    
-    @Test
-    @DisplayName("创建用户 - 用户名已存在 - 抛出异常")
-    void testCreateUser_usernameExists_throwException() {
-        // Given
-        UserCreateDTO dto = new UserCreateDTO();
-        dto.setUsername("test");
-        
-        when(userMapper.existsByUsername("test")).thenReturn(true);
-        
-        // When & Then
-        assertThatThrownBy(() -> userService.createUser(dto))
-            .isInstanceOf(BusinessException.class)
-            .hasMessageContaining("用户名已存在");
-        
-        // 验证没有调用 insert
-        verify(userMapper, never()).insert(any(User.class));
-    }
-    
-    @Test
-    @DisplayName("根据ID查询用户 - 缓存命中 - 返回缓存数据")
-    void testGetUserById_cacheHit_returnCachedData() {
-        // Given
-        Long userId = 1L;
-        UserVO cachedUser = new UserVO();
-        cachedUser.setId(userId);
-        cachedUser.setUsername("test");
-        
-        ValueOperations<String, Object> valueOps = mock(ValueOperations.class);
-        when(redisTemplate.opsForValue()).thenReturn(valueOps);
-        when(valueOps.get("user:1")).thenReturn(cachedUser);
-        
-        // When
-        UserVO result = userService.getUserById(userId);
-        
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo(userId);
-        
-        // 验证没有查询数据库
-        verify(userMapper, never()).selectById(anyLong());
-    }
-}
-```
+- 使用 `@ExtendWith(MockitoExtension.class)`
+- 使用 `@Mock` Mock 依赖
+- 使用 `@InjectMocks` 注入被测试类
 
 ### Mapper 测试模板
-```java
-@SpringBootTest
-@Transactional
-@DisplayName("用户Mapper测试")
-class UserMapperTest {
-    
-    @Autowired
-    private UserMapper userMapper;
-    
-    @Test
-    @DisplayName("插入用户 - 成功")
-    void testInsert_success() {
-        // Given
-        User user = new User();
-        user.setUsername("test");
-        user.setPassword("123456");
-        user.setEmail("test@example.com");
-        
-        // When
-        int result = userMapper.insert(user);
-        
-        // Then
-        assertThat(result).isEqualTo(1);
-        assertThat(user.getId()).isNotNull();
-    }
-    
-    @Test
-    @DisplayName("根据用户名查询 - 用户存在 - 返回用户")
-    void testSelectByUsername_userExists_returnUser() {
-        // Given: 先插入数据
-        User user = new User();
-        user.setUsername("test");
-        user.setPassword("123456");
-        userMapper.insert(user);
-        
-        // When
-        User result = userMapper.selectByUsername("test");
-        
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result.getUsername()).isEqualTo("test");
-    }
-    
-    @Test
-    @DisplayName("分页查询用户 - 返回分页结果")
-    void testSelectUserPage_returnPageResult() {
-        // Given: 插入测试数据
-        for (int i = 1; i <= 15; i++) {
-            User user = new User();
-            user.setUsername("user" + i);
-            user.setPassword("123456");
-            userMapper.insert(user);
-        }
-        
-        Page<User> page = new Page<>(1, 10);
-        
-        // When
-        IPage<User> result = userMapper.selectUserPage(page, "user");
-        
-        // Then
-        assertThat(result.getRecords()).hasSize(10);
-        assertThat(result.getTotal()).isEqualTo(15);
-        assertThat(result.getPages()).isEqualTo(2);
-    }
-}
-```
+- 使用 `@SpringBootTest`
+- 使用 `@Transactional` 自动回滚
+- 使用 `@Autowired` 注入 Mapper
 
 ## 测试用例编写原则
 
 ### AAA 模式（推荐）
-
-```java
-@Test
-void testMethodName() {
-    // Arrange (Given): 准备测试数据和环境
-    UserCreateDTO dto = new UserCreateDTO();
-    dto.setUsername("test");
-    
-    when(userMapper.existsByUsername("test")).thenReturn(false);
-    
-    // Act (When): 执行被测试的方法
-    UserVO result = userService.createUser(dto);
-    
-    // Assert (Then): 验证结果
-    assertThat(result).isNotNull();
-    assertThat(result.getUsername()).isEqualTo("test");
-}
-```
-
-### Given-When-Then 模式
-
-```java
-@Test
-@DisplayName("创建用户 - 完整流程")
-void testCreateUser_completeFlow() {
-    // Given: 准备条件
-    UserCreateDTO dto = UserCreateDTO.builder()
-        .username("test")
-        .password("123456")
-        .email("test@example.com")
-        .build();
-    
-    when(userMapper.existsByUsername("test")).thenReturn(false);
-    when(userMapper.insert(any(User.class))).thenReturn(1);
-    
-    // When: 执行操作
-    UserVO result = userService.createUser(dto);
-    
-    // Then: 验证结果
-    assertThat(result)
-        .isNotNull()
-        .extracting("username", "email")
-        .containsExactly("test", "test@example.com");
-    
-    verify(userMapper).existsByUsername("test");
-    verify(userMapper).insert(any(User.class));
-}
-```
+- **Arrange (Given)**: 准备测试数据和环境
+- **Act (When)**: 执行被测试的方法
+- **Assert (Then)**: 验证结果
 
 ## 断言（Assertions）
 
 ### JUnit 5 断言
-```java
-// 基本断言
-assertEquals(expected, actual);
-assertNotEquals(expected, actual);
-assertTrue(condition);
-assertFalse(condition);
-assertNull(object);
-assertNotNull(object);
-
-// 异常断言
-assertThrows(BusinessException.class, () -> {
-    userService.createUser(null);
-});
-
-// 超时断言
-assertTimeout(Duration.ofSeconds(1), () -> {
-    userService.complexOperation();
-});
-
-// 组合断言
-assertAll("user",
-    () -> assertEquals("test", user.getUsername()),
-    () -> assertNotNull(user.getEmail()),
-    () -> assertTrue(user.getAge() > 0)
-);
-```
+- `assertEquals`: 相等断言
+- `assertTrue/assertFalse`: 布尔断言
+- `assertNull/assertNotNull`: 空值断言
+- `assertThrows`: 异常断言
+- `assertTimeout`: 超时断言
+- `assertAll`: 组合断言
 
 ### AssertJ 断言（推荐）
-```java
-// 对象断言
-assertThat(user)
-    .isNotNull()
-    .extracting("username", "email")
-    .containsExactly("test", "test@example.com");
-
-// 集合断言
-assertThat(users)
-    .isNotEmpty()
-    .hasSize(10)
-    .extracting(User::getUsername)
-    .contains("test1", "test2");
-
-// 异常断言
-assertThatThrownBy(() -> userService.createUser(null))
-    .isInstanceOf(BusinessException.class)
-    .hasMessage("参数不能为空");
-
-// 条件断言
-assertThat(user.getAge())
-    .isGreaterThan(0)
-    .isLessThan(150);
-
-// 字符串断言
-assertThat(user.getUsername())
-    .isNotBlank()
-    .startsWith("test")
-    .hasSize(10);
-```
+- 更流畅的 API
+- 更好的可读性
+- 更丰富的断言方法
 
 ## Mock 使用规范
 
 ### Mockito 基本用法
-
-```java
-// 1. 创建 Mock 对象
-@Mock
-private UserMapper userMapper;
-
-// 2. 注入 Mock 对象
-@InjectMocks
-private UserServiceImpl userService;
-
-// 3. 定义 Mock 行为
-when(userMapper.selectById(1L)).thenReturn(user);
-when(userMapper.insert(any(User.class))).thenReturn(1);
-
-// 4. 抛出异常
-when(userMapper.selectById(999L))
-    .thenThrow(new BusinessException("用户不存在"));
-
-// 5. 验证方法调用
-verify(userMapper).selectById(1L);
-verify(userMapper, times(1)).insert(any(User.class));
-verify(userMapper, never()).deleteById(anyLong());
-
-// 6. 参数捕获
-ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-verify(userMapper).insert(captor.capture());
-User capturedUser = captor.getValue();
-assertThat(capturedUser.getUsername()).isEqualTo("test");
-```
+- `@Mock`: 创建 Mock 对象
+- `@InjectMocks`: 注入 Mock 对象
+- `when().thenReturn()`: 定义 Mock 行为
+- `verify()`: 验证方法调用
+- `ArgumentCaptor`: 参数捕获
 
 ### MockMvc 使用
-
-```java
-// GET 请求
-mockMvc.perform(get("/api/v1/users/1"))
-    .andExpect(status().isOk())
-    .andExpect(jsonPath("$.data.id").value(1));
-
-// POST 请求
-mockMvc.perform(post("/api/v1/users")
-        .contentType(MediaType.APPLICATION_JSON)
-        .content(objectMapper.writeValueAsString(dto)))
-    .andExpect(status().isOk())
-    .andExpect(jsonPath("$.code").value(200));
-
-// PUT 请求
-mockMvc.perform(put("/api/v1/users/1")
-        .contentType(MediaType.APPLICATION_JSON)
-        .content(objectMapper.writeValueAsString(dto)))
-    .andExpect(status().isOk());
-
-// DELETE 请求
-mockMvc.perform(delete("/api/v1/users/1"))
-    .andExpect(status().isOk());
-
-// 带请求头
-mockMvc.perform(get("/api/v1/users")
-        .header("Authorization", "Bearer token"))
-    .andExpect(status().isOk());
-
-// 带查询参数
-mockMvc.perform(get("/api/v1/users")
-        .param("pageNum", "1")
-        .param("pageSize", "10")
-        .param("keyword", "test"))
-    .andExpect(status().isOk());
-```
+- `perform()`: 执行请求
+- `andExpect()`: 验证响应
+- `jsonPath()`: JSON 路径断言
 
 ## 测试数据准备
 
 ### 使用 Builder 模式
-```java
-@Test
-void testExample() {
-    // 使用 Builder 构建测试数据
-    User user = User.builder()
-        .username("test")
-        .password("123456")
-        .email("test@example.com")
-        .age(25)
-        .status(1)
-        .build();
-    
-    UserCreateDTO dto = UserCreateDTO.builder()
-        .username("test")
-        .password("123456")
-        .email("test@example.com")
-        .build();
-}
-```
+- 链式调用构建测试数据
+- 代码简洁清晰
 
 ### 使用 @BeforeEach 准备
-```java
-@BeforeEach
-void setUp() {
-    // 每个测试方法执行前都会执行
-    testUser = new User();
-    testUser.setUsername("test");
-    testUser.setPassword("123456");
-}
-
-@AfterEach
-void tearDown() {
-    // 每个测试方法执行后都会执行
-    // 清理资源
-}
-```
+- 每个测试方法执行前都会执行
+- 准备通用测试数据
 
 ### 测试数据工厂
-```java
-public class TestDataFactory {
-    
-    public static User createUser(String username) {
-        return User.builder()
-            .username(username)
-            .password("123456")
-            .email(username + "@example.com")
-            .age(25)
-            .status(1)
-            .build();
-    }
-    
-    public static List<User> createUsers(int count) {
-        List<User> users = new ArrayList<>();
-        for (int i = 1; i <= count; i++) {
-            users.add(createUser("user" + i));
-        }
-        return users;
-    }
-}
-
-// 使用
-@Test
-void testBatchInsert() {
-    List<User> users = TestDataFactory.createUsers(10);
-    userService.saveBatch(users);
-}
-```
+- 提取公共方法创建测试数据
+- 提高代码复用性
 
 ## 测试覆盖场景
 
 ### 正常流程测试
-```java
-@Test
-@DisplayName("创建用户 - 正常流程 - 成功")
-void testCreateUser_normalFlow_success() {
-    // 测试正常情况下的完整流程
-}
-```
+- 测试正常情况下的完整流程
 
 ### 边界条件测试
-```java
-@Test
-@DisplayName("创建用户 - 用户名长度为3 - 成功")
-void testCreateUser_usernameMinLength_success() {
-    // 测试最小边界
-}
-
-@Test
-@DisplayName("创建用户 - 用户名长度为20 - 成功")
-void testCreateUser_usernameMaxLength_success() {
-    // 测试最大边界
-}
-```
+- 测试最小边界
+- 测试最大边界
 
 ### 异常情况测试
-```java
-@Test
-@DisplayName("创建用户 - 用户名为空 - 抛出异常")
-void testCreateUser_emptyUsername_throwException() {
-    // 测试参数为空
-}
-
-@Test
-@DisplayName("创建用户 - 用户名已存在 - 抛出异常")
-void testCreateUser_usernameExists_throwException() {
-    // 测试业务异常
-}
-
-@Test
-@DisplayName("创建用户 - 数据库连接失败 - 抛出异常")
-void testCreateUser_dbConnectionFailed_throwException() {
-    // 测试系统异常
-}
-```
-
-### 并发测试
-```java
-@Test
-@DisplayName("并发创建用户 - 线程安全")
-void testCreateUser_concurrent_threadSafe() throws InterruptedException {
-    int threadCount = 10;
-    CountDownLatch latch = new CountDownLatch(threadCount);
-    
-    for (int i = 0; i < threadCount; i++) {
-        int index = i;
-        new Thread(() -> {
-            try {
-                UserCreateDTO dto = new UserCreateDTO();
-                dto.setUsername("user" + index);
-                userService.createUser(dto);
-            } finally {
-                latch.countDown();
-            }
-        }).start();
-    }
-    
-    latch.await(10, TimeUnit.SECONDS);
-    
-    // 验证结果
-    List<User> users = userMapper.selectList(null);
-    assertThat(users).hasSize(threadCount);
-}
-```
-
-## 性能测试
-
-```java
-@Test
-@DisplayName("批量插入性能测试")
-void testBatchInsert_performance() {
-    // 准备数据
-    List<User> users = TestDataFactory.createUsers(10000);
-    
-    // 执行并计时
-    long startTime = System.currentTimeMillis();
-    userService.saveBatch(users, 1000);
-    long endTime = System.currentTimeMillis();
-    
-    // 验证性能
-    long duration = endTime - startTime;
-    assertThat(duration).isLessThan(5000); // 应在5秒内完成
-}
-```
+- 测试参数为空
+- 测试业务异常
+- 测试系统异常
 
 ## 测试最佳实践
 
 ### 1. 测试应该独立
-```java
-// 正确：每个测试独立
-@Test
-void testA() {
-    User user = createTestUser();
-    // 测试逻辑
-}
-
-@Test
-void testB() {
-    User user = createTestUser();
-    // 测试逻辑
-}
-
-// 错误：测试依赖共享状态
-private User sharedUser;
-
-@Test
-void testA() {
-    sharedUser = createTestUser();
-}
-
-@Test
-void testB() {
-    // 依赖 testA 的结果
-    userService.update(sharedUser);
-}
-```
+- 每个测试独立运行
+- 不依赖其他测试的结果
 
 ### 2. 一个测试只验证一个场景
-```java
-// 正确：单一职责
-@Test
-void testCreateUser_usernameEmpty_throwException() {
-    // 只测试用户名为空的情况
-}
-
-@Test
-void testCreateUser_passwordTooShort_throwException() {
-    // 只测试密码太短的情况
-}
-
-// 错误：测试多个场景
-@Test
-void testCreateUser_validation() {
-    // 测试用户名为空
-    // 测试密码太短
-    // 测试邮箱格式错误
-    // 过于复杂
-}
-```
+- 单一职责原则
+- 测试失败时容易定位问题
 
 ### 3. 使用有意义的测试名称
-```java
-// 正确：清晰描述测试场景
-@Test
-@DisplayName("创建用户 - 用户名已存在 - 抛出BusinessException")
-void testCreateUser_usernameExists_throwBusinessException() {
-}
-
-// 错误：命名不清晰
-@Test
-void test1() {
-}
-```
+- 清晰描述测试场景
+- 使用 `@DisplayName` 添加中文说明
 
 ### 4. 避免测试私有方法
-```java
-// 正确：测试公共接口
-@Test
-void testCreateUser() {
-    userService.createUser(dto); // 公共方法
-}
-
-// 错误：测试私有方法（通过反射）
-@Test
-void testValidateUsername() {
-    Method method = UserService.class.getDeclaredMethod("validateUsername");
-    method.setAccessible(true);
-    // 不推荐
-}
-```
+- 测试公共接口
+- 私有方法通过公共方法间接测试
 
 ### 5. Mock 外部依赖
-```java
-// 正确：Mock 数据库、Redis、HTTP 调用等
-@Mock
-private UserMapper userMapper;
-
-@Mock
-private RedisTemplate redisTemplate;
-
-// 不要 Mock 被测试的类本身
-```
+- Mock 数据库、Redis、HTTP 调用等
+- 不要 Mock 被测试的类本身
 
 ## 测试覆盖率要求
 
@@ -753,72 +140,19 @@ mvn clean test jacoco:report
 target/site/jacoco/index.html
 ```
 
-## 常见问题
-
-### 1. 测试数据库配置
-```yaml
-# test/resources/application.yml
-spring:
-  datasource:
-    url: jdbc:h2:mem:testdb
-    driver-class-name: org.h2.Driver
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-```
-
-### 2. 清理测试数据
-```java
-@SpringBootTest
-@Transactional  // 自动回滚
-class UserServiceTest {
-    // 测试方法会自动回滚，不影响数据库
-}
-```
-
-### 3. 测试异步方法
-```java
-@Test
-void testAsyncMethod() throws Exception {
-    CompletableFuture<User> future = userService.asyncGetUser(1L);
-    
-    User user = future.get(5, TimeUnit.SECONDS);
-    
-    assertThat(user).isNotNull();
-}
-```
-
-## 快速生成测试用例提示词
-
-```
-为 UserService.createUser 方法生成完整的单元测试，包括：
-1. 正常流程测试
-2. 参数校验测试（用户名为空、密码太短）
-3. 业务异常测试（用户名已存在）
-4. Mock userMapper 和 redisTemplate
-5. 使用 AssertJ 断言
-6. 遵循 Given-When-Then 模式
-```
-
 ## 测试模板速查
 
 ### Controller 测试
-```java
-@WebMvcTest(XxxController.class)
-@MockBean XxxService
-mockMvc.perform()
-```
+- `@WebMvcTest(XxxController.class)`
+- `@MockBean XxxService`
+- `mockMvc.perform()`
 
 ### Service 测试
-```java
-@ExtendWith(MockitoExtension.class)
-@Mock XxxMapper
-@InjectMocks XxxServiceImpl
-```
+- `@ExtendWith(MockitoExtension.class)`
+- `@Mock XxxMapper`
+- `@InjectMocks XxxServiceImpl`
 
 ### Mapper 测试
-```java
-@SpringBootTest
-@Transactional
-@Autowired XxxMapper
-```
+- `@SpringBootTest`
+- `@Transactional`
+- `@Autowired XxxMapper`

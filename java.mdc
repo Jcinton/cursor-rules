@@ -28,27 +28,15 @@ alwaysApply: true
 ## 代码规范
 
 ### 使用 Lombok 简化代码
-```java
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class User {
-    private Long id;
-    private String username;
-}
-```
+- `@Data`: 生成 getter/setter
+- `@Builder`: 构建器模式
+- `@NoArgsConstructor`: 无参构造
+- `@AllArgsConstructor`: 全参构造
+- `@RequiredArgsConstructor`: 必需参数构造
 
 ### 使用构造器注入
-```java
-// 推荐
-@RequiredArgsConstructor
-public class UserService {
-    private final UserMapper userMapper;
-}
-
-// 避免使用字段注入
-```
+- 推荐使用 `@RequiredArgsConstructor` 配合 final 字段
+- 避免使用字段注入 `@Autowired`
 
 ### 异常处理
 - 捕获具体异常，避免捕获 Exception
@@ -56,15 +44,9 @@ public class UserService {
 - 在 Service 层抛出异常，Controller 层统一处理
 
 ### 日志规范
-```java
-@Slf4j
-public class UserService {
-    public void example() {
-        log.info("用户登录: username={}", username);
-        log.error("操作失败: userId={}", userId, exception);
-    }
-}
-```
+- 使用 `@Slf4j` 注解
+- 使用占位符 `{}` 而非字符串拼接
+- 记录关键业务流程和错误信息
 
 ## Spring Boot 规范
 

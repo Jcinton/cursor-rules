@@ -16,18 +16,14 @@ main/master          # 生产环境分支
 develop             # 开发环境分支
 
 # 功能分支
-feature/user-login         # 功能开发
-feature/order-payment     # 新功能
+feature/user-login   # 功能开发
 
 # 修复分支
 bugfix/fix-login-error    # Bug 修复
 hotfix/critical-security  # 紧急修复
 
 # 发布分支
-release/v1.0.0            # 版本发布
-
-# 测试分支
-test/performance-test     # 测试分支
+release/v1.0.0       # 版本发布
 ```
 
 ### 分支命名规范
@@ -56,16 +52,6 @@ test/performance-test     # 测试分支
 <footer>
 ```
 
-### Commit 消息格式
-
-```
-<type>(<scope>): <subject>
-
-<body>
-
-<footer>
-```
-
 ### Type 类型
 
 ```bash
@@ -78,59 +64,6 @@ perf:      # 性能优化
 test:      # 测试相关
 chore:     # 构建过程或辅助工具的变动
 revert:    # 回退
-```
-
-### Commit 示例
-
-**✅ 正确的 Commit**:
-```bash
-feat(user): 添加用户注册功能
-
-- 实现用户注册接口
-- 添加邮箱验证
-- 添加密码加密
-
-Closes #123
-```
-
-```bash
-fix(order): 修复订单金额计算错误
-
-修复了当使用优惠券时订单金额计算不正确的问题
-
-Fixes #456
-```
-
-```bash
-docs(readme): 更新项目安装文档
-
-补充了数据库配置说明
-```
-
-```bash
-refactor(service): 重构用户服务层代码
-
-- 优化代码结构
-- 提取公共方法
-- 提高代码可读性
-```
-
-**❌ 错误的 Commit**:
-```bash
-# 太简单，没有说明具体做了什么
-update
-
-# 没有类型前缀
-修复bug
-
-# 使用英文描述（应使用中文）
-fix: fix some bugs
-
-# 描述不清晰
-fix: 修复问题
-
-# Type 使用大写（应使用小写）
-Fix: 修复登录错误
 ```
 
 ### Commit 规范要点
@@ -155,7 +88,7 @@ git checkout -b feature/user-login
 
 # 2. 开发功能，定期提交
 git add .
-git commit -m "feat(user): 实现用户登录接口"
+git commit -m "feat(用户): 实现用户登录接口"
 
 # 3. 推送到远程
 git push origin feature/user-login
@@ -172,41 +105,42 @@ git branch -d feature/user-login
 ### 2. 修复 Bug
 
 ```bash
-# 1. 从 develop 创建修复分支
+# 从 develop 创建修复分支
 git checkout develop
 git pull origin develop
 git checkout -b bugfix/fix-login-error
 
-# 2. 修复 bug 并提交
+# 修复 bug 并提交
 git add .
-git commit -m "fix(user): 修复登录验证错误"
+git commit -m "fix(用户): 修复登录验证错误"
 
-# 3. 推送并创建 PR
+# 推送并创建 PR
 git push origin bugfix/fix-login-error
 ```
 
 ### 3. 紧急修复（Hotfix）
 
 ```bash
-# 1. 从 main 创建 hotfix 分支
+# 从 main 创建 hotfix 分支
 git checkout main
 git pull origin main
 git checkout -b hotfix/critical-security
 
-# 2. 修复并提交
+# 修复并合并到 main 和 develop
 git add .
-git commit -m "fix(security): 修复严重安全漏洞"
+git commit -m "fix(安全): 修复严重安全漏洞"
 
-# 3. 合并到 main 和 develop
+# 合并到 main
 git checkout main
 git merge --no-ff hotfix/critical-security
 git push origin main
 
+# 合并到 develop
 git checkout develop
 git merge --no-ff hotfix/critical-security
 git push origin develop
 
-# 4. 打标签
+# 打标签
 git tag -a v1.0.1 -m "紧急修复版本"
 git push origin v1.0.1
 ```
@@ -216,146 +150,46 @@ git push origin v1.0.1
 ### 基本操作
 
 ```bash
-# 查看状态
-git status
-
-# 查看修改
-git diff
-git diff --staged
-
-# 添加文件
-git add <file>
-git add .
-
-# 提交
-git commit -m "message"
-git commit --amend  # 修改最后一次提交
-
-# 查看日志
-git log
-git log --oneline
-git log --graph --all
+git status                  # 查看状态
+git diff                   # 查看修改
+git add <file>             # 添加文件
+git commit -m "message"    # 提交
+git log                    # 查看日志
 ```
 
 ### 分支操作
 
 ```bash
-# 查看分支
-git branch              # 本地分支
-git branch -r           # 远程分支
-git branch -a           # 所有分支
-
-# 创建分支
-git branch <branch-name>
-git checkout -b <branch-name>  # 创建并切换
-
-# 切换分支
-git checkout <branch-name>
-git switch <branch-name>       # Git 2.23+
-
-# 删除分支
-git branch -d <branch-name>    # 删除已合并的分支
-git branch -D <branch-name>    # 强制删除分支
-
-# 重命名分支
-git branch -m <old-name> <new-name>
+git branch                 # 查看分支
+git checkout -b <name>     # 创建并切换分支
+git branch -d <name>       # 删除分支
+git merge <branch>         # 合并分支
 ```
 
 ### 同步操作
 
 ```bash
-# 拉取更新
-git pull origin <branch>
-git pull --rebase origin <branch>  # 使用 rebase
-
-# 推送
-git push origin <branch>
-git push -u origin <branch>        # 首次推送并设置上游
-
-# 获取远程更新（不合并）
-git fetch origin
-```
-
-### 合并操作
-
-```bash
-# 合并分支
-git merge <branch-name>
-git merge --no-ff <branch-name>    # 保留分支历史
-
-# 变基
-git rebase <branch-name>
-git rebase -i HEAD~3               # 交互式变基
-
-# 解决冲突
-git status                         # 查看冲突文件
-# 手动解决冲突后
-git add <file>
-git commit
+git pull origin <branch>   # 拉取更新
+git push origin <branch>   # 推送
+git fetch origin           # 获取远程更新
 ```
 
 ### 撤销操作
 
 ```bash
-# 撤销工作区修改
-git checkout -- <file>
-git restore <file>                 # Git 2.23+
-
-# 撤销暂存区
-git reset HEAD <file>
-git restore --staged <file>        # Git 2.23+
-
-# 撤销提交
-git reset --soft HEAD~1            # 撤销提交，保留修改
-git reset --hard HEAD~1            # 撤销提交，丢弃修改
-
-# 回退到指定版本
-git reset --hard <commit-id>
-
-# 撤销某次提交
-git revert <commit-id>
+git checkout -- <file>     # 撤销工作区修改
+git reset HEAD <file>      # 撤销暂存区
+git reset --soft HEAD~1    # 撤销提交，保留修改
+git revert <commit-id>     # 撤销某次提交
 ```
 
 ### 暂存操作
 
 ```bash
-# 暂存当前工作
-git stash
-git stash save "message"
-
-# 查看暂存列表
-git stash list
-
-# 应用暂存
-git stash apply                    # 应用最近的暂存
-git stash apply stash@{0}          # 应用指定暂存
-
-# 弹出暂存
-git stash pop
-
-# 删除暂存
-git stash drop stash@{0}
-git stash clear                    # 清空所有暂存
-```
-
-### 标签操作
-
-```bash
-# 创建标签
-git tag v1.0.0
-git tag -a v1.0.0 -m "Release version 1.0.0"
-
-# 查看标签
-git tag
-git show v1.0.0
-
-# 推送标签
-git push origin v1.0.0
-git push origin --tags             # 推送所有标签
-
-# 删除标签
-git tag -d v1.0.0                  # 删除本地标签
-git push origin :refs/tags/v1.0.0 # 删除远程标签
+git stash                  # 暂存当前工作
+git stash list             # 查看暂存列表
+git stash pop              # 弹出暂存
+git stash clear            # 清空所有暂存
 ```
 
 ## Git 配置
@@ -367,177 +201,27 @@ git push origin :refs/tags/v1.0.0 # 删除远程标签
 git config --global user.name "Your Name"
 git config --global user.email "your.email@example.com"
 
-# 配置编辑器
-git config --global core.editor "vim"
-
-# 配置差异工具
-git config --global diff.tool vimdiff
-
 # 配置别名
 git config --global alias.co checkout
 git config --global alias.br branch
 git config --global alias.ci commit
 git config --global alias.st status
-git config --global alias.lg "log --graph --oneline --all"
-
-# 查看配置
-git config --list
-git config user.name
 ```
 
 ### 中文编码配置（重要！）
 
-**解决中文乱码问题**：
-
 ```bash
-# 1. 设置提交信息编码为 UTF-8
+# 设置提交信息编码为 UTF-8
 git config --global i18n.commitencoding utf-8
 
-# 2. 设置日志输出编码为 UTF-8
+# 设置日志输出编码为 UTF-8
 git config --global i18n.logoutputencoding utf-8
 
-# 3. 禁用路径引用，正确显示中文文件名
+# 禁用路径引用，正确显示中文文件名
 git config --global core.quotepath false
 
-# 4. 设置 Git GUI 编码
+# 设置 Git GUI 编码
 git config --global gui.encoding utf-8
-```
-
-**Windows 系统额外配置**：
-
-如果使用 PowerShell，在 PowerShell 配置文件中添加：
-
-```powershell
-# PowerShell 配置文件路径: $PROFILE
-# 编辑配置: notepad $PROFILE
-
-# 设置输出编码为 UTF-8
-[System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$env:LESSCHARSET = 'utf-8'
-
-# 设置 Git 输出编码
-$env:LC_ALL = 'C.UTF-8'
-```
-
-如果使用 CMD 或 Git Bash：
-
-```bash
-# 在 ~/.bashrc 或 ~/.bash_profile 中添加
-export LANG=zh_CN.UTF-8
-export LC_ALL=zh_CN.UTF-8
-export LESSCHARSET=utf-8
-```
-
-**验证配置**：
-
-```bash
-# 查看当前编码配置
-git config --get i18n.commitencoding
-git config --get i18n.logoutputencoding
-git config --get core.quotepath
-
-# 测试中文显示
-git log --oneline -5
-git status
-```
-
-**常见问题**：
-
-1. **提交信息出现乱码**：
-   
-   方法一：修改最后一次提交
-   ```bash
-   # 使用文件方式提交（推荐）
-   echo "feat(用户): 添加用户登录功能" > commit_msg.txt
-   git commit --amend -F commit_msg.txt
-   
-   # 或使用编辑器修改
-   git commit --amend
-   # 在编辑器中重新输入正确的中文信息
-   ```
-   
-   方法二：修改历史提交（慎用）
-   ```bash
-   # 使用 rebase 修改多个历史提交
-   git rebase -i HEAD~3
-   # 将需要修改的提交从 pick 改为 reword
-   # 保存后会依次打开编辑器让你修改提交信息
-   
-   # 使用文件方式批量修改
-   # 1. 创建包含正确提交信息的文件
-   echo "feat(用户): 添加用户登录功能" > commit_msg.txt
-   
-   # 2. 修改指定提交
-   GIT_SEQUENCE_EDITOR=true git rebase -i HEAD~3
-   git commit --amend -F commit_msg.txt
-   git rebase --continue
-   ```
-
-2. **Git Bash 中文乱码**：
-   - 右键点击 Git Bash 窗口标题栏
-   - 选择 Options → Text → Locale 设为 `zh_CN`
-   - Character set 设为 `UTF-8`
-
-3. **VS Code 终端乱码**：
-   在 VS Code 设置中添加：
-   ```json
-   {
-     "terminal.integrated.env.windows": {
-       "LC_ALL": "C.UTF-8"
-     }
-   }
-   ```
-
-4. **PowerShell 中文提交乱码**：
-   ```powershell
-   # 临时解决方案：使用文件方式提交
-   "feat(用户): 添加用户登录功能" | Out-File -Encoding UTF8 commit_msg.txt
-   git commit -F commit_msg.txt
-   
-   # 永久解决方案：配置 PowerShell 编码
-   # 编辑 PowerShell 配置文件
-   notepad $PROFILE
-   
-   # 添加以下内容：
-   [System.Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-   $env:LESSCHARSET = 'utf-8'
-   ```
-
-### 项目级配置
-
-```bash
-# 在项目目录下
-git config user.name "Project Name"
-git config user.email "project@example.com"
-```
-
-### .gitignore 配置
-
-```bash
-# Java 项目 .gitignore 示例
-# 编译输出
-target/
-*.class
-*.jar
-*.war
-
-# IDE 文件
-.idea/
-*.iml
-.vscode/
-.DS_Store
-
-# 日志文件
-*.log
-
-# 配置文件（包含敏感信息）
-application-prod.yml
-application-prod.properties
-
-# 临时文件
-*.tmp
-*.bak
-*~
 ```
 
 ## Git 协作规范
@@ -567,9 +251,6 @@ fix: 修复订单金额计算错误
 
 ## 相关 Issue
 Closes #123
-
-## 截图
-[如果有 UI 改动，添加截图]
 ```
 
 ### Code Review 规范
@@ -581,21 +262,6 @@ Closes #123
 - ✅ 有必要的注释
 - ✅ 单元测试覆盖
 - ✅ 性能考虑合理
-
-**审查评论**:
-```
-# 建议性评论
-💡 建议使用 Optional 处理可能为 null 的值
-
-# 必须修改
-❗ 这里会导致空指针异常，必须添加判空
-
-# 询问
-❓ 这里为什么要这样处理？
-
-# 表扬
-👍 这段代码写得很好，逻辑清晰
-```
 
 ## Git 最佳实践
 
@@ -628,122 +294,6 @@ Closes #123
 - ✅ 认真对待审查意见
 - ❌ 不要直接推送到 main/develop
 
-## 常见问题处理
-
-### 1. 撤销已推送的提交
-
-```bash
-# 方法 1: 使用 revert（推荐）
-git revert <commit-id>
-git push origin <branch>
-
-# 方法 2: 使用 reset（慎用）
-git reset --hard <commit-id>
-git push -f origin <branch>  # 强制推送
-```
-
-### 2. 合并多个提交
-
-```bash
-# 使用交互式 rebase
-git rebase -i HEAD~3
-
-# 在编辑器中将 pick 改为 squash
-# 保存后编辑合并后的提交信息
-```
-
-### 3. 修改最后一次提交
-
-```bash
-# 修改提交信息
-git commit --amend -m "new message"
-
-# 添加遗漏的文件
-git add <file>
-git commit --amend --no-edit
-```
-
-### 4. 找回删除的提交
-
-```bash
-# 查看所有操作记录
-git reflog
-
-# 恢复到指定版本
-git reset --hard <commit-id>
-```
-
-### 5. 清理本地分支
-
-```bash
-# 删除已合并的本地分支
-git branch --merged | grep -v "\*" | xargs -n 1 git branch -d
-
-# 删除远程不存在的本地分支
-git fetch --prune
-```
-
-## Git 快捷命令别名
-
-在 `~/.gitconfig` 或 `~/.zshrc` 中添加：
-
-```bash
-# Git 别名
-alias gs='git status'
-alias ga='git add'
-alias gc='git commit'
-alias gp='git push'
-alias gl='git pull'
-alias gco='git checkout'
-alias gb='git branch'
-alias gm='git merge'
-alias gd='git diff'
-alias glg='git log --graph --oneline --all'
-alias gst='git stash'
-alias gstp='git stash pop'
-
-# 常用组合
-alias gaa='git add .'
-alias gcm='git commit -m'
-alias gpf='git push -f'
-alias gpl='git pull --rebase'
-```
-
-## Git 工作流选择
-
-### Git Flow（标准流程）
-适用于：版本发布明确的项目
-
-```
-main       ─────●─────●─────●────  (生产环境)
-              ╱       ╱       ╱
-release   ───●───────●───────●──   (发布分支)
-           ╱       ╱       ╱
-develop  ─●───●───●───●───●──────  (开发分支)
-         ╱   ╱   ╱   ╱   ╱
-feature ●───●   ●───●   ●─────────  (功能分支)
-```
-
-### GitHub Flow（简化流程）
-适用于：持续交付的项目
-
-```
-main    ─────●─────●─────●────────  (生产环境)
-            ╱     ╱     ╱
-feature  ──●─────●─────●───────────  (功能分支)
-```
-
-### GitLab Flow（环境流程）
-适用于：多环境部署的项目
-
-```
-main     ─────●─────────●─────────  (开发)
-             ╱         ╱
-pre-prod  ──●─────────●───────────  (预发布)
-           ╱         ╱
-prod    ──●─────────●─────────────  (生产)
-```
-
 ## 版本号规范
 
 ### 语义化版本（Semantic Versioning）
@@ -755,15 +305,6 @@ prod    ──●─────────●───────────
   1: 主版本号（不兼容的 API 修改）
   2: 次版本号（向下兼容的功能性新增）
   3: 修订号（向下兼容的问题修正）
-```
-
-### 版本示例
-
-```bash
-v1.0.0  # 首次发布
-v1.0.1  # Bug 修复
-v1.1.0  # 新增功能
-v2.0.0  # 重大更新（不兼容旧版本）
 ```
 
 ## 团队协作检查清单
@@ -789,61 +330,3 @@ v2.0.0  # 重大更新（不兼容旧版本）
 - [ ] 文档已更新
 - [ ] 数据库脚本已准备
 - [ ] 回滚方案已准备
-
----
-
-## 快速参考
-
-### 日常开发流程
-
-```bash
-# 1. 拉取最新代码
-git pull origin develop
-
-# 2. 创建功能分支
-git checkout -b feature/new-feature
-
-# 3. 开发并提交
-git add .
-git commit -m "feat: 添加新功能"
-
-# 4. 推送分支
-git push origin feature/new-feature
-
-# 5. 创建 Pull Request
-# 在 GitHub/GitLab 上操作
-
-# 6. 合并后清理
-git checkout develop
-git pull origin develop
-git branch -d feature/new-feature
-```
-
-### 紧急修复流程
-
-```bash
-# 1. 创建 hotfix 分支
-git checkout -b hotfix/urgent-fix main
-
-# 2. 修复并提交
-git commit -m "fix: 紧急修复"
-
-# 3. 合并到 main 和 develop
-git checkout main
-git merge --no-ff hotfix/urgent-fix
-git push origin main
-
-git checkout develop
-git merge --no-ff hotfix/urgent-fix
-git push origin develop
-
-# 4. 打标签
-git tag -a v1.0.1 -m "Hotfix"
-git push origin v1.0.1
-```
-
----
-
-**最后更新**: 2024-01-15  
-**维护者**: 开发团队  
-**版本**: 1.0.0
