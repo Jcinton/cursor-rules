@@ -12,7 +12,7 @@ echo ""
 # 获取当前工作目录（应该是目标项目的根目录）
 PROJECT_ROOT=$(pwd)
 RULES_DIR="$PROJECT_ROOT/.cursor/rules"
-REPO_URL="git@github.com:Jcinton/cursor-rules.git"
+REPO_URL="https://github.com/Jcinton/cursor-rules.git"
 
 # 颜色定义
 RED='\033[0;31m'
