@@ -76,6 +76,49 @@ revert:    # 回退
 6. **提交前先测试**
 7. **统一使用中文描述，保持团队一致性**
 
+### ⚠️ 避免中文乱码的提交方法（推荐）
+
+**Windows PowerShell 环境下，推荐使用文件方式提交以避免编码问题：**
+
+```bash
+# 方法1：使用临时文件提交（推荐）
+echo "feat(用户): 添加用户登录功能" | Out-File -Encoding UTF8 .git_commit_msg.txt
+git add .
+git commit -F .git_commit_msg.txt
+rm .git_commit_msg.txt
+
+# 方法2：包含详细说明的提交
+@"
+feat(用户): 添加用户登录功能
+
+- 实现用户名密码验证
+- 添加 JWT Token 生成
+- 添加登录日志记录
+
+Closes #123
+"@ | Out-File -Encoding UTF8 .git_commit_msg.txt
+git commit -F .git_commit_msg.txt
+rm .git_commit_msg.txt
+
+# 方法3：使用 PowerShell 函数（一次性配置）
+function gitc {
+    param([string]$message)
+    $message | Out-File -Encoding UTF8 .git_commit_msg.txt
+    git commit -F .git_commit_msg.txt
+    rm .git_commit_msg.txt
+}
+
+# 使用函数提交
+git add .
+gitc "feat(用户): 添加用户登录功能"
+```
+
+**为什么要用文件方式？**
+- PowerShell 默认使用 GBK 编码（代码页 936）
+- 直接使用 `git commit -m` 会导致中文乱码
+- 使用 UTF-8 文件可以保证编码正确
+- 提交后自动删除临时文件，保持工作区清洁
+
 ## Git 工作流程
 
 ### 1. 开发新功能
@@ -86,9 +129,11 @@ git checkout develop
 git pull origin develop
 git checkout -b feature/user-login
 
-# 2. 开发功能，定期提交
+# 2. 开发功能，定期提交（使用文件方式避免乱码）
 git add .
-git commit -m "feat(用户): 实现用户登录接口"
+echo "feat(用户): 实现用户登录接口" | Out-File -Encoding UTF8 .git_commit_msg.txt
+git commit -F .git_commit_msg.txt
+rm .git_commit_msg.txt
 
 # 3. 推送到远程
 git push origin feature/user-login
@@ -110,9 +155,11 @@ git checkout develop
 git pull origin develop
 git checkout -b bugfix/fix-login-error
 
-# 修复 bug 并提交
+# 修复 bug 并提交（使用文件方式）
 git add .
-git commit -m "fix(用户): 修复登录验证错误"
+echo "fix(用户): 修复登录验证错误" | Out-File -Encoding UTF8 .git_commit_msg.txt
+git commit -F .git_commit_msg.txt
+rm .git_commit_msg.txt
 
 # 推送并创建 PR
 git push origin bugfix/fix-login-error
@@ -126,9 +173,11 @@ git checkout main
 git pull origin main
 git checkout -b hotfix/critical-security
 
-# 修复并合并到 main 和 develop
+# 修复并提交（使用文件方式）
 git add .
-git commit -m "fix(安全): 修复严重安全漏洞"
+echo "fix(安全): 修复严重安全漏洞" | Out-File -Encoding UTF8 .git_commit_msg.txt
+git commit -F .git_commit_msg.txt
+rm .git_commit_msg.txt
 
 # 合并到 main
 git checkout main
