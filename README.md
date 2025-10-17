@@ -37,17 +37,65 @@
 
 ## 🚀 快速开始
 
-### 1. 安装到你的项目
+### 方法一：Git 子模块方式（推荐）⭐
+
+这是最优雅的方式，可以让规则始终保持最新，团队成员自动同步。
+
+#### 1. 在你的项目中安装
+
+```bash
+# 在项目根目录执行
+cd /path/to/your/project
+
+# 方式 1: 使用在线安装脚本（推荐）
+bash <(curl -fsSL https://raw.githubusercontent.com/Jcinton/cursor-rules/main/install.sh)
+
+# 方式 2: 手动安装
+git submodule add git@github.com:Jcinton/cursor-rules.git .cursor/rules
+git submodule update --init --recursive
+```
+
+#### 2. 更新规则到最新版本
+
+```bash
+# 方式 1: 使用更新脚本（推荐）
+bash .cursor/rules/update-rules.sh
+
+# 方式 2: 手动更新
+cd .cursor/rules && git pull && cd ../..
+```
+
+#### 3. 团队成员克隆项目后
+
+```bash
+# 克隆项目并初始化子模块
+git clone <your-project-repo>
+cd <your-project>
+git submodule update --init --recursive
+```
+
+#### 4. 删除规则子模块（如果需要）
+
+```bash
+git submodule deinit -f .cursor/rules
+git rm -f .cursor/rules
+rm -rf .git/modules/.cursor/rules
+```
+
+### 方法二：直接复制（简单但不推荐）
 
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/cursor-rules.git
+git clone git@github.com:Jcinton/cursor-rules.git
 
 # 复制规则文件到你的项目
-cp -r cursor-rules/.cursor/rules /your-project/.cursor/
+mkdir -p /your-project/.cursor
+cp -r cursor-rules/*.mdc /your-project/.cursor/rules/
 ```
 
-### 2. 在 Cursor 中使用
+**⚠️ 注意**: 直接复制方式无法自动更新规则，需要手动同步。
+
+### 在 Cursor 中使用
 
 #### 方式 1: 自动应用（推荐）
 所有标记为 `alwaysApply: true` 的规则会自动生效，无需任何操作。
@@ -301,27 +349,45 @@ alwaysApply: false
 
 ## 💡 最佳实践
 
-1. **团队统一使用**
+1. **使用 Git 子模块管理规则（推荐）**
+   - ✅ 规则自动同步，始终保持最新
+   - ✅ 团队成员克隆项目后自动拥有规则
+   - ✅ 统一管理，避免版本不一致
+   - ✅ 可以随时更新和回滚规则版本
+
+2. **团队统一使用**
    - 所有团队成员使用相同的规则文件
    - 定期更新和完善规则
-   - 将规则文件加入版本控制
+   - 将规则配置加入版本控制
 
-2. **持续改进**
+3. **持续改进**
    - 根据团队实际情况调整规则
    - 定期 Review 和优化规则
    - 收集团队反馈
 
-3. **新人培训**
+4. **新人培训**
    - 新人入职时学习规则文档
    - 结合实际项目应用
    - 建立代码审查机制
 
 ## ⚠️ 注意事项
 
-1. 规则文件必须放在 `.cursor/rules/` 目录下
-2. `alwaysApply: true` 的规则会自动生效
-3. 修改规则后，Cursor 会自动识别更新
-4. 不同规则可能有优先级，以 `code-quality.mdc` 为最高优先级
+1. **子模块方式**（推荐）:
+   - ✅ 规则文件会自动放在 `.cursor/rules/` 目录下
+   - ✅ 使用 `git submodule update` 初始化子模块
+   - ✅ 使用 `update-rules.sh` 或 `git pull` 更新规则
+   - ⚠️ 不要直接修改 `.cursor/rules/` 中的文件（这是子模块）
+
+2. **直接复制方式**:
+   - 规则文件必须放在 `.cursor/rules/` 目录下
+   - 可以直接修改规则文件
+   - ⚠️ 需要手动同步更新
+
+3. **通用注意事项**:
+   - `alwaysApply: true` 的规则会自动生效
+   - 修改规则后，Cursor 会自动识别更新
+   - 不同规则可能有优先级，以 `code-quality.mdc` 为最高优先级
+   - `.cursor/rules/` 目录建议加入 `.gitignore`（如果使用子模块）
 
 ## 🎓 学习路径
 

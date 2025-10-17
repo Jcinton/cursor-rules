@@ -12,3 +12,9 @@ Thumbs.db
 *.bak
 *~
 
+# Git commit message temp file
+.git_commit_msg.txt
+
+# Cursor directories (if not using as submodule target)
+.cursor/
+
