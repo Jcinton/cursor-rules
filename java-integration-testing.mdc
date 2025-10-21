@@ -1,0 +1,59 @@
+---
+description: Java集成测试最佳实践，包括数据库测试、API测试和完整的Spring Boot集成测试。
+globs: **/src/test/java/**/*IntegrationTest.java, **/src/test/java/**/*IT.java
+---
+
+# Java集成测试最佳实践
+
+## 集成测试定义
+- 验证多个组件之间的交互，测试真实数据库操作、HTTP调用等
+- 比单元测试慢但提供更高信心
+- 测试类名以IntegrationTest或IT结尾
+
+## Spring Boot测试注解
+- @SpringBootTest - 完整Spring上下文测试，适用于端到端业务流程
+- @MybatisTest - 只加载MyBatis组件，自动配置H2内存数据库，事务自动回滚
+- @WebMvcTest - 只加载Web层，自动配置MockMvc，Service需@MockBean
+- @TestConfiguration - 提供测试专用配置
+
+## 测试数据库配置
+- 使用H2内存数据库：jdbc:h2:mem:testdb;MODE=MySQL;DB_CLOSE_DELAY=-1
+- 配置MyBatis-Plus：log-impl、map-underscore-to-camel-case、logic-delete-field等
+- 或使用TestContainers测试真实数据库（PostgreSQL、MySQL）
+
+## Mapper层测试
+- 使用@MybatisTest + @AutoConfigureTestDatabase
+- 使用LambdaQueryWrapper构建查询：userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getEmail, email))
+- 测试增删改查、分页、逻辑删除等功能
+
+## Controller层测试
+- 使用@WebMvcTest + MockMvc
+- Service层使用@MockBean
+- 测试HTTP请求响应、参数验证、异常处理、ApiResponse格式
+
+## REST API测试
+- 使用@SpringBootTest(webEnvironment = RANDOM_PORT) + RestAssured
+- 测试完整请求-响应周期
+- 使用given().when().then()链式调用
+
+## 事务和数据管理
+- 集成测试默认开启事务并自动回滚
+- 使用@Transactional标记测试方法
+- 使用@BeforeEach准备数据，@AfterEach清理
+- 使用@Sql执行SQL脚本准备测试数据
+
+## 测试配置分离
+- 使用@ActiveProfiles("test")激活测试配置
+- 使用@TestConfiguration提供测试Bean
+- 使用@TestPropertySource覆盖配置
+
+## 异步和并发测试
+- 使用Awaitility等待异步操作：await().atMost(Duration.ofSeconds(5)).untilAsserted()
+
+## 最佳实践
+- 保持集成测试数量适中（比单元测试少）
+- 测试关键业务流程和边界场景
+- 使用TestContainers保证环境一致性
+- 定期清理测试数据避免相互影响
+- 目标执行时间：每个测试<5秒
+- 使用@Tag标记测试分组（integration、slow等）

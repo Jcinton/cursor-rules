@@ -1,0 +1,14 @@
+---
+description: 定义服务类的结构和实现方式，强制使用接口、ServiceImpl类、DTO进行数据传输，以及事务管理。
+globs: **/src/main/java/com/example/service/*.java, **/src/main/java/com/example/services/*.java
+---
+- Service类必须是接口类型。
+- 所有Service类的方法实现必须在实现该Service接口的ServiceImpl类中。
+- 所有ServiceImpl类必须使用@Service注解。
+- ServiceImpl类中的所有依赖必须使用@Autowired注解，不使用构造函数注入，除非另有说明。
+- ServiceImpl方法的返回对象应该是DTO，而不是实体类，除非绝对必要。
+- 对于任何需要检查记录是否存在的逻辑，使用Mapper的selectById方法，结合Optional.ofNullable()和orElseThrow()。
+- 对于任何多个顺序数据库操作，必须使用@Transactional或TransactionTemplate，选择合适的方式。
+- 使用MyBatis-Plus的IService接口和ServiceImpl基类可以获得常用的CRUD方法。
+- 对于批量操作，使用MyBatis-Plus的saveBatch、updateBatchById等批量方法。
+- 使用LambdaQueryWrapper或LambdaUpdateWrapper构建类型安全的查询和更新条件。

@@ -1,0 +1,14 @@
+---
+description: 规范Mapper类的结构和功能，强调使用MyBatis-Plus的BaseMapper、注解SQL和XML映射来实现数据库操作。
+globs: **/src/main/java/com/example/mapper/*.java, **/src/main/resources/mapper/*.xml
+---
+- 必须使用@Mapper注解Mapper接口。
+- Mapper类必须是接口类型。
+- 必须继承BaseMapper<T>，并将实体类作为泛型参数，除非另有说明。
+- 简单的CRUD操作直接使用BaseMapper提供的方法。
+- 复杂查询使用@Select、@Insert、@Update、@Delete注解或XML映射文件。
+- 在关联查询中使用@Results和@Result注解映射或XML的resultMap来避免N+1问题。
+- 对于多表连接查询，优先使用XML映射文件，并使用DTO作为返回结果容器。
+- 使用MyBatis-Plus的分页插件PaginationInnerInterceptor实现分页查询。
+- 使用QueryWrapper或LambdaQueryWrapper构建动态查询条件。
+- 对于批量操作，使用MyBatis-Plus的批量方法或自定义批量SQL。
