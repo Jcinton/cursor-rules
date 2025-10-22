@@ -44,8 +44,16 @@ if [ -d "$RULES_DIR" ]; then
         exit 0
     fi
     
+    # 检查是否在 git 索引中
+    if git ls-files --error-unmatch .cursor/rules > /dev/null 2>&1; then
+        echo "检测到 .cursor/rules 在 git 索引中但不是子模块"
+        echo "正在从索引中移除..."
+        git rm -rf --cached .cursor/rules > /dev/null 2>&1 || true
+        echo "已从索引中移除"
+    fi
+    
     # 询问是否删除并重新安装
-    read -p "是否删除并重新安装？(y/N) " -n 1 -r
+    read -p "是否删除现有目录并重新安装？(y/N) " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         rm -rf "$RULES_DIR"
@@ -54,6 +62,12 @@ if [ -d "$RULES_DIR" ]; then
         echo "取消安装"
         exit 0
     fi
+fi
+
+# 确保 .cursor/rules 不在 git 索引中
+if git ls-files --error-unmatch .cursor/rules > /dev/null 2>&1; then
+    echo "清理 git 索引中的 .cursor/rules..."
+    git rm -rf --cached .cursor/rules > /dev/null 2>&1 || true
 fi
 
 # 创建 .cursor 目录
