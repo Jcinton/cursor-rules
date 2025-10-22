@@ -70,6 +70,27 @@ if git ls-files --error-unmatch .cursor/rules > /dev/null 2>&1; then
     git rm -rf --cached .cursor/rules > /dev/null 2>&1 || true
 fi
 
+# 清理 git 模块缓存
+if [ -d ".git/modules/.cursor/rules" ]; then
+    echo "清理 git 子模块缓存..."
+    rm -rf .git/modules/.cursor/rules
+fi
+
+# 从 .gitmodules 中移除旧的子模块配置（如果存在）
+if [ -f ".gitmodules" ]; then
+    if grep -q "path = .cursor/rules" .gitmodules; then
+        echo "清理 .gitmodules 配置..."
+        git config -f .gitmodules --remove-section submodule..cursor/rules 2>/dev/null || true
+        # 如果 .gitmodules 为空，删除它
+        if [ ! -s .gitmodules ]; then
+            rm -f .gitmodules
+        fi
+    fi
+fi
+
+# 从 .git/config 中移除旧的子模块配置（如果存在）
+git config --remove-section submodule..cursor/rules 2>/dev/null || true
+
 # 创建 .cursor 目录
 mkdir -p .cursor
 
@@ -79,7 +100,20 @@ if git submodule add "$REPO_URL" .cursor/rules; then
     echo -e "${GREEN}✅ 子模块添加成功${NC}"
 else
     echo -e "${RED}❌ 子模块添加失败${NC}"
-    exit 1
+    echo ""
+    echo "💡 尝试使用 --force 选项强制添加..."
+    if git submodule add --force "$REPO_URL" .cursor/rules; then
+        echo -e "${GREEN}✅ 子模块强制添加成功${NC}"
+    else
+        echo -e "${RED}❌ 子模块强制添加也失败了${NC}"
+        echo ""
+        echo "请手动执行以下命令清理后重试："
+        echo "  git rm -rf --cached .cursor/rules"
+        echo "  rm -rf .cursor/rules"
+        echo "  rm -rf .git/modules/.cursor/rules"
+        echo "  git config --remove-section submodule..cursor/rules"
+        exit 1
+    fi
 fi
 
 # 初始化子模块
